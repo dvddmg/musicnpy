@@ -54,6 +54,7 @@ These properties and methods allow access to various attributes of the _Set obje
 .. autoattribute:: _Set.median
 .. autoattribute:: _Set.odd
 .. autoattribute:: _Set.even
+.. autoattribute:: _Set.contour
 .. automethod:: _Set.__len__
 .. automethod:: _Set.getitems
 .. automethod:: _Set.getids
@@ -110,6 +111,8 @@ These methods apply various mathematical transformations to the sequence, such a
 .. automethod:: _Set.round
 .. automethod:: _Set.ceil
 .. automethod:: _Set.floor
+.. automethod:: _Set.interpolation
+.. automethod:: _Set.normalize
 
 |
 
@@ -143,6 +146,16 @@ These methods allow for logical operations, filtering based on conditions, and r
 .. automethod:: _Set.filter
 .. automethod:: _Set.getseq
 .. automethod:: _Set.__iter__
+
+|
+
+Generators
+-----------
+These class methods allow for generating _Set objects with random or specific values.
+
+.. automethod:: _Set.rand_int
+.. automethod:: _Set.rand_flt
+.. automethod:: _Set.n_time
 
 |
 

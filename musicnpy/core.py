@@ -1687,19 +1687,29 @@ class _Set:
         return parts
     
     def interpolation(self, other: _Set = None, step: int = 0, curve: float = 1) -> _Set:
-
         """
-        Docstring for interpolation
-        
-        :param self: Description
-        :param other: Description
+        Interpolate between this set and another set over a number of steps.
+
+        Generates intermediate values using linear interpolation with optional
+        curve control. The curve parameter controls the interpolation curve shape.
+
+        :param other: The target set to interpolate towards.
         :type other: _Set
-        :param step: Description
+        :param step: Number of interpolation steps (must be > 0).
         :type step: int
-        :param curve: Description
+        :param curve: Exponent for curve control. Defaults to 1 (linear).
+                      Values > 1 create ease-out curves, values < 1 create ease-in curves.
         :type curve: float
-        :return: Description
-        :rtype: _Set
+        :return: List of interpolated _Set instances.
+        :rtype: list[_Set]
+
+        :Example:
+
+        >>> s1 = _Set([0, 5, 10])
+        >>> s2 = _Set([10, 15, 20])
+        >>> result = s1.interpolation(s2, step=3, curve=1)
+        >>> len(result)
+        3
         """
 
         t = np.linspace(0, 1, step)
@@ -1709,22 +1719,122 @@ class _Set:
         return [self.__class__(x).round(decimals=2) for x in result]
 
     def normalize(self, mix: Numeric = 0, max: Numeric = 1) -> _Set:
-        self.vals = self.scaled(min=min, max=max)
+        """
+        Normalize values to a specified range.
+
+        Linearly scales all values to fit within the specified range [mix, max].
+        This is an in-place operation that modifies the set's current values.
+
+        :param mix: The minimum of the target range. Defaults to 0.
+        :type mix: Numeric
+        :param max: The maximum of the target range. Defaults to 1.
+        :type max: Numeric
+        :return: This set with normalized values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([10, 20, 30, 40, 50])
+        >>> s.normalize(mix=0, max=100).values
+        [0.0, 25.0, 50.0, 75.0, 100.0]
+        """
+        self.vals = self.scaled(min=mix, max=max)
         return self
     
     @property
     def contour(self) -> list:
+        """
+        Get the contour of the set as sign changes of consecutive differences.
+
+        Returns a list of signs (+1, 0, -1) indicating whether each consecutive
+        pair of values is ascending, flat, or descending.
+
+        :return: List of signs representing the contour shape.
+        :rtype: list
+
+        :Example:
+
+        >>> s = _Set([1, 3, 2, 5, 4])
+        >>> s.contour
+        [1.0, -1.0, 1.0, -1.0]
+        """
         return np.sign(self.deltas).tolist()
 
     @classmethod
     def rand_int(cls, size: int = 1, min: int = 0, max: int = 12, unique: bool = True) -> _Set:
+        """
+        Create a set with random integer values.
+
+        Generates random integers within the specified range with optional
+        uniqueness constraint.
+
+        :param size: Number of random integers to generate. Defaults to 1.
+        :type size: int
+        :param min: Minimum value (inclusive). Defaults to 0.
+        :type min: int
+        :param max: Maximum value (exclusive). Defaults to 12.
+        :type max: int
+        :param unique: If True, all values are unique. Defaults to True.
+        :type unique: bool
+        :return: A new set with random integer values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set.rand_int(size=5, min=1, max=10, unique=True)
+        >>> len(s)
+        5
+        """
         return cls(np.random.choice(range(min, max), size, replace=not unique))
         
     @classmethod      
     def rand_flt(cls, size: int = 1, min: int = 0, max: int = 12, decimals: int = 2) -> _Set:
+        """
+        Create a set with random floating-point values.
+
+        Generates random floats within the specified range with a specified
+        decimal precision.
+
+        :param size: Number of random floats to generate. Defaults to 1.
+        :type size: int
+        :param min: Minimum value. Defaults to 0.
+        :type min: int
+        :param max: Maximum value. Defaults to 12.
+        :type max: int
+        :param decimals: Number of decimal places. Defaults to 2.
+        :type decimals: int
+        :return: A new set with random float values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set.rand_flt(size=3, min=0, max=10, decimals=2)
+        >>> len(s)
+        3
+        """
         vals = np.random.rand(size) * (abs(min - max)) + min
         return cls(np.round(vals, decimals=decimals))
     
     @classmethod
     def n_time(cls, item: Numeric | list[Numeric] = 0, size: int = 1) -> _Set:
+        """
+        Create a set by repeating an item multiple times.
+
+        Tiles (repeats) a numeric value or sequence of values a specified
+        number of times to create a new set.
+
+        :param item: A numeric value or list of numeric values to repeat.
+                     Defaults to 0.
+        :type item: Numeric | list[Numeric]
+        :param size: Number of times to repeat the item. Defaults to 1.
+        :type size: int
+        :return: A new set with repeated values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set.n_time([1, 2], size=3)
+        >>> s.values
+        [1.0, 2.0, 1.0, 2.0, 1.0, 2.0]
+        """
         return cls(np.tile(np.asarray(item), size))
