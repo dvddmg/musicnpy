@@ -1688,8 +1688,43 @@ class _Set:
     
     def interpolation(self, other: _Set = None, step: int = 0, curve: float = 1) -> _Set:
 
+        """
+        Docstring for interpolation
+        
+        :param self: Description
+        :param other: Description
+        :type other: _Set
+        :param step: Description
+        :type step: int
+        :param curve: Description
+        :type curve: float
+        :return: Description
+        :rtype: _Set
+        """
+
         t = np.linspace(0, 1, step)
         t_curve = t ** curve
         result = self.vals + (other.vals - self.vals) * t_curve[:, np.newaxis]
 
         return [self.__class__(x).round(decimals=2) for x in result]
+
+    def normalize(self, mix: Numeric = 0, max: Numeric = 1) -> _Set:
+        self.vals = self.scaled(min=min, max=max)
+        return self
+    
+    @property
+    def contour(self) -> list:
+        return np.sign(self.deltas).tolist()
+
+    @classmethod
+    def rand_int(cls, size: int = 1, min: int = 0, max: int = 12, unique: bool = True) -> _Set:
+        return cls(np.random.choice(range(min, max), size, replace=not unique))
+        
+    @classmethod      
+    def rand_flt(cls, size: int = 1, min: int = 0, max: int = 12, decimals: int = 2) -> _Set:
+        vals = np.random.rand(size) * (abs(min - max)) + min
+        return cls(np.round(vals, decimals=decimals))
+    
+    @classmethod
+    def n_time(cls, item: Numeric | list[Numeric] = 0, size: int = 1) -> _Set:
+        return cls(np.tile(np.asarray(item), size))

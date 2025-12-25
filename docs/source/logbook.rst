@@ -49,10 +49,7 @@ Todo
 ===========================
 
 - _Set:
-    * implementare metodi di classe per `_Set`, generare patterns noti e randomici
-    * aggiungere interpolazione
-    * aggiungere normalizzazione
-    * direzioni, contour
+    * documentare interpolazione, classmethod, normalizzazione e countour
 
 - _PSet:
     * conversioni: frequenze, midi e simboli
@@ -67,11 +64,11 @@ Todo
     * gestione ritmi irregolari (_Set 2D)
 
 - Classi ibride:
-    * Arpeggio
+    * Arpeggi
     * Abbellimenti
     * ...
 
-- topypy:
+- topyly:
     * quarti e ottavi di tono
     * sistemare la libreria pyly con docstring, type hints e struttura delle classi (Staff non accetta il size della pagina del file da creare)
 
