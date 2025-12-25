@@ -1240,7 +1240,7 @@ class _Set:
             _, idx = np.unique(self.vals, return_index=True)
             self.vals = self.vals[np.sort(idx)]
         elif mode == 'unique':
-            vals, idx, counts = np.unique(self.vals, return_counts=True, return_index=True)
+            _, idx, counts = np.unique(self.vals, return_counts=True, return_index=True)
             unique_idx = idx[counts==1]
             self.vals = self.vals[np.sort(unique_idx)]
         elif mode == 'consecutive':
