@@ -73,3 +73,9 @@ Todo
 
 - topypy:
     * quarti e ottavi di tono
+    * sistemare la libreria pyly con docstring, type hints e struttura delle classi (Staff non accetta il size della pagina del file da creare)
+
+- per il futuro:
+    * import export MIDI
+    * analisi audio per ottenere dati
+    * sintesi....(?)
