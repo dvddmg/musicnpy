@@ -1,0 +1,2 @@
+# musicnpy
+Libreria composizione assistita
