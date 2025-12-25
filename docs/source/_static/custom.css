@@ -1,0 +1,329 @@
+/* Sticky Footer con Flexbox */
+html {
+    height: 100%;
+}
+
+body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Esclude la navbar dalle regole di centratura */
+.navbar .container {
+    display: block;  /* Override del flex */
+    justify-content: initial;
+}
+
+.navbar .container > * {
+    width: auto;
+    max-width: none;
+}
+
+/* Container principale del contenuto */
+.container:not(.navbar .container) {
+    flex: 1 0 auto;
+}
+
+/* ===== LAYOUT PAGINE CON SIDEBAR ===== */
+
+/* Row flex container */
+.row {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+}
+
+/* Sidebar a sinistra */
+.col-md-3 {
+    width: 280px;
+    min-width: 250px;
+    max-width: 320px;
+    flex-shrink: 0;
+    position: fixed;
+    left: 0;
+    top: 60px;  /* sotto la navbar */
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #f8f8f8;
+    border-right: 1px solid #e7e7e7;
+    z-index: 100;
+}
+
+/* Contenuto principale - lascia spazio per sidebar */
+.col-md-9 {
+    flex: 1;
+    max-width: 900px;
+    margin-left: 300px;  /* Spazio per la sidebar */
+    padding: 20px 40px;
+    min-width: 0;
+}
+
+/* Pagine senza sidebar - contenuto centrato */
+.container:not(.navbar .container) > .row > .col-md-12,
+.container:not(.navbar .container) > .col-md-12 {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 40px;
+}
+
+/* Su schermi medi-piccoli: nascondi sidebar */
+@media (max-width: 1200px) {
+    .col-md-3 {
+        display: none !important;
+    }
+    
+    .col-md-9 {
+        max-width: 900px;
+        margin: 0 auto;  /* Centra quando sidebar è nascosta */
+        padding: 20px;
+    }
+    
+    .row {
+        justify-content: center;
+    }
+}
+
+/* Navbar: link a sinistra, ricerca a destra */
+.navbar-nav {
+    float: left !important;
+}
+
+.navbar-form,
+.navbar-right {
+    float: right !important;
+}
+
+/* Navbar-collapse gestito nelle media queries sotto */
+
+footer {
+    flex-shrink: 0;
+}
+
+/* ===== FIX DROPDOWN NAVBAR ===== */
+
+/* Mostra dropdown al hover */
+.navbar .dropdown:hover > .dropdown-menu {
+    display: block;
+    margin-top: 0;
+}
+
+/* Assicura che il dropdown sia visibile */
+.navbar .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 160px;
+    padding: 5px 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0,0,0,.175);
+}
+
+/* Stile link nel dropdown */
+.navbar .dropdown-menu > li > a {
+    display: block;
+    padding: 8px 20px;
+    color: #333;
+    text-decoration: none;
+}
+
+.navbar .dropdown-menu > li > a:hover {
+    background-color: #f5f5f5;
+}
+
+/* Divider */
+.navbar .dropdown-menu .divider {
+    height: 1px;
+    margin: 9px 0;
+    background-color: #e5e5e5;
+}
+
+/* Caret (freccetta) */
+.navbar .caret {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-left: 4px;
+    vertical-align: middle;
+    border-top: 4px solid;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+}
+
+/* ===== NAVBAR MOBILE FIX ===== */
+
+/* Stile bottone hamburger */
+.navbar-toggle {
+    display: none;
+    float: right;
+    padding: 9px 10px;
+    margin-top: 8px;
+    margin-right: 15px;
+    background-color: transparent;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.navbar-toggle:hover {
+    background-color: #f5f5f5;
+}
+
+.navbar-toggle .icon-bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: #888;
+    margin: 4px 0;
+}
+
+/* Desktop: menu sempre visibile */
+@media (min-width: 769px) {
+    .navbar-collapse {
+        display: block !important;
+    }
+}
+
+/* Mobile: menu nascosto di default, toggle con JS */
+@media (max-width: 768px) {
+    /* Mostra hamburger */
+    .navbar-toggle {
+        display: block !important;
+    }
+    
+    /* Nascondi menu di default su mobile */
+    #main-nav {
+        display: none;
+        width: 100%;
+        clear: both;
+        padding: 0;
+        background-color: #fff;
+        border-top: 1px solid #e7e7e7;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+    }
+    
+    /* Mostra menu quando ha classe 'open' */
+    #main-nav.open {
+        display: block !important;
+    }
+    
+    /* Stack verticale */
+    .navbar-nav {
+        float: none !important;
+        margin: 10px 0;
+    }
+    
+    .navbar-nav > li {
+        float: none !important;
+        display: block;
+    }
+    
+    .navbar-nav > li > a {
+        padding: 10px 15px;
+        display: block;
+    }
+    
+    /* Dropdown su mobile - sempre visibile */
+    .navbar .dropdown-menu {
+        position: static !important;
+        float: none !important;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        background-color: #f8f8f8;
+        display: block !important;
+    }
+    
+    /* Search form su mobile */
+    .navbar-form {
+        float: none !important;
+        margin: 10px 0;
+        padding: 10px 15px;
+        border: none;
+    }
+    
+    .navbar-form .form-control {
+        width: 100%;
+    }
+    
+    /* Assicura che il container della navbar sia relativo */
+    .navbar .container {
+        position: relative;
+    }
+}
+
+/* ===== SIDEBAR FLESSIBILE ===== */
+
+/* Sidebar container */
+#sidebar.bs-sidenav {
+    width: auto;
+    min-width: 200px;
+    max-width: 350px;
+    overflow-x: hidden;
+}
+
+/* Links nella sidebar */
+#sidebar a,
+.bs-sidenav a {
+    display: block;
+    white-space: normal !important;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-all;      /* Forza il break anche su parole lunghe */
+    padding: 4px 8px;
+    line-height: 1.3;
+}
+
+/* IMPORTANTE: Code elements nella sidebar */
+#sidebar code,
+#sidebar .docutils.literal,
+.bs-sidenav code,
+.bs-sidenav .docutils.literal {
+    white-space: normal !important;   /* Override del nowrap */
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    display: inline;
+    font-size: 0.85em;
+    background: transparent;
+    padding: 0;
+}
+
+/* Span dentro code */
+#sidebar code span,
+.bs-sidenav code span,
+#sidebar .pre,
+.bs-sidenav .pre {
+    white-space: normal !important;
+    word-break: break-all !important;
+}
+
+/* Liste nella sidebar */
+#sidebar ul.nav,
+.bs-sidenav ul.nav {
+    padding-left: 12px;
+    list-style: none;
+    margin: 0;
+}
+
+#sidebar li,
+.bs-sidenav li {
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+
+/* Nested lists - riduci padding per risparmiare spazio */
+#sidebar ul ul,
+.bs-sidenav ul ul {
+    padding-left: 10px;
+}
+
+/* Layout flex per sidebar e contenuto - gestito sopra */
