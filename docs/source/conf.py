@@ -47,7 +47,7 @@ html_theme = 'bootstrap'
 html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 html_static_path = ['_static']
 html_theme_options = {
-    'bootswatch_theme': 'cerulean',  # Cambia tema colori
+    # 'bootswatch_theme': 'cerulean',  # Cambia tema colori
     'navbar_links': [],  # Svuota i link di default
     'navbar_sidebarrel': False,  # Rimuove prev/next
     'navbar_pagenav': False,  # Rimuove navigazione pagina

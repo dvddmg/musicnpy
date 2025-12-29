@@ -20,11 +20,6 @@ class _PSet(_Set):
     # ottava specifica
     # intervalli (semantica deltas)
     # intervalli gradi funzionali
-    
-    # interpolazione tra due _Set
-    # normalize (probabilmente in _Set) a valore specifico, default 1
-    # direzione, contour
-    # class method, vari tipi di generazione
 
     def __init__(self, list, offset = 0):
         super().__init__(list, offset)
