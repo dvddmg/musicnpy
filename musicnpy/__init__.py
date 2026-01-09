@@ -12,11 +12,12 @@ Submodules
 - velo
 - topyly
 """
-
+__version__ = "0.1.0"
 # Import principale
 from .core import _Set
 from .pitch import _PSet, Scale
 from .topyly import Staff, _Voice, _Print, _Map, Score
+from .data import PMod
 
-# Definisce cosa viene esportato con 'from musicnpy import *'
-__all__ = ["_Set", "_PSet", "Scale", "Staff", "_Voice", "_Print", "_Map", "Score"]
+# # Definisce cosa viene esportato con 'from musicnpy import *'
+__all__ = ["_Set", "_PSet", "Scale", "Staff", "_Voice", "_Print", "_Map", "Score", "PMod"]

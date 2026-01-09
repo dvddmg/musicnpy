@@ -129,7 +129,6 @@ These methods allow for structural changes to the sequence, such as splitting, s
 .. automethod:: _Set.remove
 .. automethod:: _Set.unique
 .. automethod:: _Set.append
-.. automethod:: _Set.pad
 .. automethod:: _Set.repeat
 .. automethod:: _Set.__lshift__
 .. automethod:: _Set.__ilshift__
@@ -165,3 +164,10 @@ These methods are used internally by the class and are not typically called dire
 
 .. automethod:: _Set._align
 .. automethod:: _Set._binary_op
+
+
+Functions
+===================
+The ``core`` module also provides standalone functions for common operations on _Set objects.
+
+.. autofunction:: pad

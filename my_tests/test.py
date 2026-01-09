@@ -11,4 +11,4 @@ d = _Set(c[-1]).interpolation(z, 7, 0.75)
 c = [x.round(decimals=0).values for x in c]
 d = [x.round(decimals=0).values for x in d]
 
-Staff(c + d, filename='./scores/chords', format='pdf', size='a4landscape').make_file
+Staff(c + d, filename='./scores/chords', format='pdf').make_file

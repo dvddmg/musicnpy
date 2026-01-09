@@ -18,10 +18,11 @@ La libreria ha la seguente struttura:
     musicnpy/
     ├── __init__.py
     ├── core.py
+    ├── data.py
     ├── durs.py
     ├── pitch.py
-    ├── velo.py
-    └── topyly.py
+    ├── topyly.py
+    └── velo.py
 
 Il modulo ``core`` è il cuore di tutta la libreria. Al momento fornisce un unica superclasse privata ``_Set`` da cui dipendono gli altri moduli.
 Questa superclasse ha il compito gestire una lista di valori numerici con diversi scopi:
@@ -53,7 +54,6 @@ Todo
 
 - _PSet:
     * conversioni: frequenze, midi e simboli
-    * ottava, sopra, sotto o specifica
     * intervalli
     * gradi
     * classi figlie(Scale, Chord, Melody)

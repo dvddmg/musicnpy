@@ -1,21 +1,42 @@
-from __future__ import annotations
 """
 musicnpy.core 
-il core alla basa della libreria musicnpy.
 """
 
+from __future__ import annotations
 import numpy as np
 import numbers, operator
-from typing import Self, TypeAlias, Callable, Any, Literal
+from typing import Self, TypeAlias, Callable, Any, Literal 
 from collections.abc import Sequence, Iterator
 
 Numeric = numbers.Real
-ArrayLike: TypeAlias = '_Set | Sequence[Numeric]'
+ArrayLike = Sequence[Numeric] | np.ndarray
 Index = int | slice | Sequence[int] | np.ndarray
 
+def pad(list: ArrayLike = None, n_pad: int = 1, item: Numeric = 0) -> Self:
+    
+    """
+    Pad the set by adding elements at the end.
+    :param list: The list to pad
+    :type list: ArrayLike
+    :param n_pad: Number of elements to add. Defaults to 1.
+    :type n_pad: int
+    :param item: Value to pad with. Defaults to 0.
+    :type item: Numeric
+    :return: This set with padded elements.
+    :rtype: Self
+
+    :Example:
+
+    >>> s = _Set([1, 2, 3])
+    >>> pad(s.values, 2, 0)
+    [1.0, 2.0, 3.0, 0.0, 0.0]
+    """
+    
+    return np.pad(list, (0, n_pad), constant_values=item)
+    
 class _Set:
 
-    def __init__(self, list: list[Numeric], offset: Numeric = 0) -> _Set:
+    def __init__(self, values: ArrayLike, offset: Numeric = 0) -> None:
         
         """
         Initialize a _Set with a list of numeric values.
@@ -23,12 +44,10 @@ class _Set:
         Creates a new _Set instance containing numeric values with an optional
         offset applied to all elements.
 
-        :param list: List of numeric values to initialize the set with.
-        :type list: list[Numeric]
+        :param values: List of numeric values to initialize the set with.
+        :type values: ArrayLike
         :param offset: Value to add to all elements. Defaults to 0.
         :type offset: Numeric
-        :return: A new _Set instance.
-        :rtype: _Set
 
         :Example:
 
@@ -38,7 +57,7 @@ class _Set:
         """
 
         self.offset: Numeric = offset
-        self.set: np.ndarray = np.array(list) + self.offset
+        self.set: np.ndarray = np.array(values) + self.offset
         self.vals: np.ndarray = self.set.copy()
 
     @property
@@ -180,10 +199,10 @@ class _Set:
         5.0
         """
 
-        return np.median(self.vals)
+        return np.median(self.vals).item()
 
     @property
-    def copy(self) -> _Set:
+    def copy(self) -> Self:
 
         """
         Create a deep copy of this set.
@@ -208,6 +227,26 @@ class _Set:
         new.set = self.set.copy()
         new.vals = self.vals.copy()
         return new
+    
+    @property
+    def contour(self) -> list:
+        
+        """
+        Get the contour of the set as sign changes of consecutive differences.
+
+        Returns a list of signs (+1, 0, -1) indicating whether each consecutive
+        pair of values is ascending, flat, or descending.
+
+        :return: List of signs representing the contour shape.
+        :rtype: list
+
+        :Example:
+
+        >>> s = _Set([1, 3, 2, 5, 4])
+        >>> s.contour
+        [1.0, -1.0, 1.0, -1.0]
+        """
+        return np.sign(self.deltas).tolist()
 
     def __len__(self) -> int:
         
@@ -241,7 +280,7 @@ class _Set:
         [1.0, 2.0, 3.0]
         """
 
-        return iter(self.vals)
+        return iter(v.item() if hasattr(v, 'item') else v for v in self.vals)
 
     def _align(self, other: ArrayLike | Numeric, fill: Numeric) -> tuple[np.ndarray, np.ndarray]:
 
@@ -264,14 +303,14 @@ class _Set:
         """
 
         a = self.vals
-        b = other.vals if isinstance(other, _Set) else np.array(other)
+        b = other.vals if isinstance(other, Self) else np.array(other)
         if len(b) < len(a):
-            b = self.pad(b.tolist(), len(a) - len(b), fill)
+            b = pad(b.tolist(), len(a) - len(b), fill)
         elif len(b) > len(a):
-            a = self.pad(a.tolist(), len(b) - len(a), fill)
+            a = pad(a.tolist(), len(b) - len(a), fill)
         return np.array(a), np.array(b)
 
-    def _binary_op(self, other: ArrayLike | Numeric, op: Callable[[Any, Any], np.ndarray], fill: Numeric = 0, reversed: bool = False) -> _Set:
+    def _binary_op(self, other: ArrayLike | Numeric, op: Callable[[Any, Any], np.ndarray], fill: Numeric, reversed: bool = False) -> np.ndarray:
 
         """
         Perform a binary operation between this set and another operand.
@@ -297,19 +336,25 @@ class _Set:
         """
 
         with np.errstate(divide="ignore", invalid="ignore"):
-            if isinstance(other, (_Set, list)):
+
+            if isinstance(other, self.__class__):
                 a, b = self._align(other, fill)
                 lhs, rhs = (b, a) if reversed else (a, b)
-                result = op(lhs, rhs)
+
+            elif isinstance(other, (list, np.ndarray)):
+                other = Self(other)
+                a, b = self._align(other, fill)
+                lhs, rhs = (b, a) if reversed else (a, b)
+
             elif isinstance(other, numbers.Real):
                 lhs, rhs = (other, self.vals) if reversed else (self.vals, other)
-                result = op(lhs, rhs)
-            else:
-                raise TypeError("Not implemented")
-            
-            return result
 
-    def __add__(self, other: ArrayLike | Numeric) -> _Set:
+            else:
+                raise TypeError(f"Unsupported operand type: {type(other)}")
+
+            return op(lhs, rhs)
+        
+    def __add__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Add values element-wise using the ``+`` operator.
@@ -317,7 +362,7 @@ class _Set:
         :param other: Values to add (set, sequence, or scalar).
         :type other: ArrayLike | Numeric
         :return: A new set with the sum of values.
-        :rtype: _Set
+        :rtype: Self
 
         :Example:
 
@@ -326,9 +371,9 @@ class _Set:
         [11.0, 12.0, 13.0]
         """
 
-        return _Set(self._binary_op(other, operator.add, fill=0))
+        return Self(self._binary_op(other, operator.add, fill=0))
 
-    def __radd__(self, other: ArrayLike | Numeric) -> _Set:
+    def __radd__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Add values with reversed operand order using the ``+`` operator.
@@ -345,9 +390,9 @@ class _Set:
         [11.0, 12.0, 13.0]
         """
 
-        return _Set(self._binary_op(other, operator.add, fill=0, reversed=True))
+        return Self(self._binary_op(other, operator.add, fill=0, reversed=True))
 
-    def __iadd__(self, other: ArrayLike | Numeric) -> _Set:
+    def __iadd__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Add values in-place using the ``+=`` operator.
@@ -368,7 +413,7 @@ class _Set:
         self.vals = self._binary_op(other, operator.add, fill=0)
         return self
 
-    def __sub__(self, other: ArrayLike | Numeric) -> _Set:
+    def __sub__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Subtract values element-wise using the ``-`` operator.
@@ -385,9 +430,9 @@ class _Set:
         [5.0, 15.0, 25.0]
         """
 
-        return _Set(self._binary_op(other, operator.sub, fill=0))
+        return Self(self._binary_op(other, operator.sub, fill=0))
 
-    def __rsub__(self, other: ArrayLike | Numeric) -> _Set:
+    def __rsub__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Subtract with reversed operand order using the ``-`` operator.
@@ -404,9 +449,9 @@ class _Set:
         [9.0, 8.0, 7.0]
         """
 
-        return _Set(self._binary_op(other, operator.sub, fill=0, reversed=True))
+        return Self(self._binary_op(other, operator.sub, fill=0, reversed=True))
 
-    def __isub__(self, other: ArrayLike | Numeric) -> _Set:
+    def __isub__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Subtract values in-place using the ``-=`` operator.
@@ -427,7 +472,7 @@ class _Set:
         self.vals = self._binary_op(other, operator.sub, fill=0)
         return self
 
-    def __mul__(self, other: ArrayLike | Numeric) -> _Set:
+    def __mul__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Multiply values element-wise using the ``*`` operator.
@@ -443,10 +488,12 @@ class _Set:
         >>> (s * 10).values
         [10.0, 20.0, 30.0]
         """
+        result = self.copy()   # copia profonda dei valori
+        result *= other        # forza __imul__
+        return result
+        # return _Set(self._binary_op(other, operator.mul, fill=1))
 
-        return _Set(self._binary_op(other, operator.mul, fill=1))
-
-    def __rmul__(self, other: ArrayLike | Numeric) -> _Set:
+    def __rmul__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Multiply with reversed operand order using the ``*`` operator.
@@ -463,9 +510,9 @@ class _Set:
         [10.0, 20.0, 30.0]
         """
 
-        return _Set(self._binary_op(other, operator.mul, fill=1, reversed=True))
+        return Self(self._binary_op(other, operator.mul, fill=1, reversed=True))
 
-    def __imul__(self, other: ArrayLike | Numeric) -> _Set:
+    def __imul__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Multiply values in-place using the ``*=`` operator.
@@ -483,10 +530,11 @@ class _Set:
         [5.0, 10.0, 15.0]
         """
 
-        self.vals = self._binary_op(other, operator.mul, fill=1)
+        result = self._binary_op(other, operator.mul, fill=1)
+        self.vals[:] = result
         return self
 
-    def __truediv__(self, other: ArrayLike | Numeric) -> _Set:
+    def __truediv__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Divide values element-wise using the ``/`` operator.
@@ -503,9 +551,9 @@ class _Set:
         [5.0, 10.0, 15.0]
         """
 
-        return _Set(self._binary_op(other, operator.truediv, fill=1))
+        return Self(self._binary_op(other, operator.truediv, fill=1))
 
-    def __rtruediv__(self, other: ArrayLike | Numeric) -> _Set:
+    def __rtruediv__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Divide with reversed operand order using the ``/`` operator.
@@ -522,9 +570,9 @@ class _Set:
         [10.0, 5.0, 4.0]
         """
 
-        return _Set(self._binary_op(other, operator.truediv, fill=1, reversed=True))
+        return Self(self._binary_op(other, operator.truediv, fill=1, reversed=True))
 
-    def __itruediv__(self, other: ArrayLike | Numeric) -> _Set:
+    def __itruediv__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Divide values in-place using the ``/=`` operator.
@@ -545,7 +593,7 @@ class _Set:
         self.vals = self._binary_op(other, operator.truediv, fill=1)
         return self
     
-    def __floordiv__(self, other: ArrayLike | Numeric) -> _Set:
+    def __floordiv__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Perform floor division element-wise using the ``//`` operator.
@@ -562,9 +610,9 @@ class _Set:
         [3.0, 6.0, 10.0]
         """
 
-        return _Set(self._binary_op(other, operator.floordiv, fill=1))
+        return Self(self._binary_op(other, operator.floordiv, fill=1))
     
-    def __rfloordiv__(self, other: ArrayLike | Numeric) -> _Set:
+    def __rfloordiv__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Perform floor division with reversed operand order using the ``//`` operator.
@@ -581,9 +629,9 @@ class _Set:
         [6.0, 5.0, 4.0]
         """
 
-        return _Set(self._binary_op(other, operator.floordiv, fill=1, reversed=True))
+        return Self(self._binary_op(other, operator.floordiv, fill=1, reversed=True))
     
-    def __ifloordiv__(self, other: ArrayLike | Numeric) -> _Set:
+    def __ifloordiv__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Perform floor division in-place using the ``//=`` operator.
@@ -604,7 +652,7 @@ class _Set:
         self.vals = self._binary_op(other, operator.floordiv, fill=1)
         return self
 
-    def __pow__(self, other: ArrayLike | Numeric) -> _Set:
+    def __pow__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Raise values to a power element-wise using the ``**`` operator.
@@ -621,9 +669,9 @@ class _Set:
         [4.0, 9.0, 16.0]
         """
 
-        return _Set(self._binary_op(other, operator.pow, fill=1))
+        return Self(self._binary_op(other, operator.pow, fill=1))
 
-    def __rpow__(self, other: ArrayLike | Numeric) -> _Set:
+    def __rpow__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Raise to a power with reversed operand order using the ``**`` operator.
@@ -640,9 +688,9 @@ class _Set:
         [4.0, 8.0, 16.0]
         """
 
-        return _Set(self._binary_op(other, operator.pow, fill=1, reversed=True))
+        return Self(self._binary_op(other, operator.pow, fill=1, reversed=True))
 
-    def __ipow__(self, other: ArrayLike | Numeric) -> _Set:
+    def __ipow__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Raise values to a power in-place using the ``**=`` operator.
@@ -663,7 +711,7 @@ class _Set:
         self.vals = self._binary_op(other, operator.pow, fill=1)
         return self
     
-    def __mod__(self, other: ArrayLike | Numeric) -> _Set:
+    def __mod__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Compute modulo element-wise using the ``%`` operator.
@@ -680,9 +728,9 @@ class _Set:
         [1.0, 0.0, 2.0]
         """
         
-        return _Set(self._binary_op(other, operator.mod, fill=1))
+        return Self(self._binary_op(other, operator.mod, fill=1))
 
-    def __rmod__(self, other: ArrayLike | Numeric) -> _Set:
+    def __rmod__(self, other: ArrayLike | Numeric) -> Self:
 
         """
         Compute modulo with reversed operand order using the ``%`` operator.
@@ -699,9 +747,9 @@ class _Set:
         [2.0, 0.0, 2.0]
         """
 
-        return _Set(self._binary_op(other, operator.mod, fill=1, reversed=True))
+        return Self(self._binary_op(other, operator.mod, fill=1, reversed=True))
 
-    def __imod__(self, other: ArrayLike | Numeric) -> _Set:
+    def __imod__(self, other: ArrayLike | Numeric) -> Self:
         
         """
         Compute modulo in-place using the ``%=`` operator.
@@ -762,7 +810,7 @@ class _Set:
         else:
             raise TypeError('Invalid index type')
 
-    def __setitem__(self, key: Index, value: ArrayLike | Numeric) -> _Set:
+    def __setitem__(self, key: Index, value: ArrayLike | Numeric) -> Self:
         
         """
         Set element(s) by index using bracket notation.
@@ -789,7 +837,7 @@ class _Set:
         else:
             raise TypeError('Invalid index type')
 
-    def __abs__(self) -> _Set:
+    def __abs__(self) -> Self:
         
         """
         Compute absolute values using the built-in ``abs()`` function.
@@ -824,7 +872,7 @@ class _Set:
         self.vals = np.abs(self.vals)
         return self
     
-    def __neg__(self) -> _Set:
+    def __neg__(self) -> Self:
         
         """
         Negate values using the unary ``-`` operator.
@@ -841,7 +889,7 @@ class _Set:
         
         return type(self)(-self.vals)
 
-    def _neg(self) -> _Set:
+    def _neg(self) -> Self:
         
         """
         Negate values in-place.
@@ -859,7 +907,7 @@ class _Set:
         self.vals *= -1
         return self
     
-    def shift(self, other: Numeric) -> _Set:
+    def shift(self, other: Numeric) -> Self:
         
         """
         Shift all values by adding a constant offset.
@@ -881,7 +929,7 @@ class _Set:
         self.offset = other
         return self.__iadd__(other)
     
-    def invert(self, pivot: Numeric = None) -> _Set:
+    def invert(self, pivot: Numeric = None) -> Self:
         
         """
         Invert values around a pivot point.
@@ -905,7 +953,7 @@ class _Set:
             return type(self)((self.vals.min() + self.vals.max() - self.vals).tolist())
         return type(self)((2 * pivot - self.vals).tolist())
     
-    def __invert__(self) -> _Set:
+    def __invert__(self) -> Self:
         
         """
         Invert values in-place using the ``~`` operator.
@@ -925,7 +973,7 @@ class _Set:
         self.vals = self.vals.min() + self.vals.max() - self.vals
         return self
 
-    def scaled(self, min: Numeric = 0, max: Numeric = 1) -> _Set:
+    def scaled(self, min: Numeric = 0, max: Numeric = 1) -> Self:
         
         """
         Scale values to a specified range.
@@ -952,7 +1000,7 @@ class _Set:
         self.vals = (min + (self.vals - v_min) * (max - min) / (v_max - v_min))
         return self
     
-    def limit(self, min: Numeric = 0, max: Numeric = 1) -> _Set:
+    def limit(self, min: Numeric = 0, max: Numeric = 1) -> Self:
         
         """
         Clip values to a specified range.
@@ -976,7 +1024,7 @@ class _Set:
         self.vals.clip(min=min, max=max, out=self.vals)
         return self
     
-    def __lshift__(self, n: int = 0) -> _Set:
+    def __lshift__(self, n: int = 0) -> Self:
         
         """
         Repeat the set n times using the ``<<`` operator.
@@ -1002,7 +1050,7 @@ class _Set:
         new = type(self)(np.tile(self.values, n))
         return new 
 
-    def __ilshift__(self, n: int = 0) -> _Set:
+    def __ilshift__(self, n: int = 0) -> Self:
         
         """
         Repeat the set n times in-place using the ``<<=`` operator.
@@ -1030,7 +1078,7 @@ class _Set:
         self.vals = np.tile(self.vals, n)
         return self
 
-    def __or__(self, other: ArrayLike | Numeric = 0) -> _Set:
+    def __or__(self, other: ArrayLike | Numeric = 0) -> Self:
         
         """
         Concatenate with another sequence using the ``|`` operator.
@@ -1049,12 +1097,12 @@ class _Set:
 
         if isinstance(other, Sequence) or isinstance(other, list):
             return type(self)(np.concatenate((self.vals, other)).tolist())
-        elif isinstance(other, _Set):
+        elif isinstance(other, self.__class__):
             return type(self)(np.concatenate((self.vals, other.vals)).tolist())
         else:
             return type(self)(np.concatenate((self.vals, np.array([other]))).tolist())
         
-    def __ior__(self, other: ArrayLike | Numeric = 0) -> _Set:
+    def __ior__(self, other: ArrayLike | Numeric = 0) -> Self:
         
         """
         Concatenate in-place using the ``|=`` operator.
@@ -1074,13 +1122,13 @@ class _Set:
 
         if isinstance(other, Sequence) or isinstance(other, list):
             self.vals = np.concatenate((self.vals, other))
-        elif isinstance(other, _Set):
+        elif isinstance(other, self.__class__):
             self.vals = np.concatenate((self.vals, other.vals))
         else:
             self.vals = np.concatenate((self.vals, np.array([other])))
         return self
 
-    def repeat(self, n: int = 0) -> _Set:
+    def repeat(self, n: int = 0) -> Self:
         
         """
         Repeat the set n times in-place.
@@ -1100,7 +1148,7 @@ class _Set:
 
         return self.__ilshift__(n)
 
-    def concat(self, other: ArrayLike | Numeric = 0) -> _Set:
+    def concat(self, other: ArrayLike | Numeric = 0) -> Self:
         
         """
         Concatenate this set with another sequence or value in-place.
@@ -1119,7 +1167,7 @@ class _Set:
 
         return self.__ior__(other)
 
-    def rotate(self, n: int = 0) -> _Set:
+    def rotate(self, n: int = 0) -> Self:
         
         """
         Rotate elements by n positions.
@@ -1142,7 +1190,7 @@ class _Set:
         self.vals = np.roll(self.vals, n)
         return self
 
-    def reverse(self) -> _Set:
+    def reverse(self) -> Self:
         
         """
         Reverse the order of elements in-place.
@@ -1160,7 +1208,7 @@ class _Set:
         self.vals = self.vals[::-1]
         return self
 
-    def insert(self, pos: int = 0, other: ArrayLike | Numeric = 0) -> _Set:
+    def insert(self, pos: int = 0, other: ArrayLike | Numeric = 0) -> Self:
         
         """
         Insert element(s) at a specific position.
@@ -1182,7 +1230,7 @@ class _Set:
         self.vals = np.insert(self.vals, pos, other)
         return self
     
-    def remove(self, idx: int | ArrayLike = None, item: Numeric | ArrayLike = None) -> _Set:
+    def remove(self, idx: int | ArrayLike = None, item: Numeric | ArrayLike = None) -> Self:
         
         """
         Remove elements by index or by value.
@@ -1203,17 +1251,17 @@ class _Set:
         [1.0, 2.0, 4.0, 5.0]
         """
 
-        if idx != None and isinstance(idx, (Sequence, _Set, int)):
+        if idx != None and isinstance(idx, (Sequence, self.__class__, int)):
             self.vals = np.delete(self.vals, idx)
-        elif item != None and isinstance(item, (Sequence, _Set, int, float)):
-            if isinstance(item, (Sequence, _Set)):
+        elif item != None and isinstance(item, (Sequence, self.__class__, int, float)):
+            if isinstance(item, (Sequence, self.__class__)):
                 for i in item:
                     self.vals = np.delete(self.vals, np.where(self.vals == i))
             elif isinstance(item, (int, float)):
                 self.vals = np.delete(self.vals, np.where(self.vals == item))
         return self
     
-    def unique(self, mode: Literal['normal', 'unique', 'consecutive'] = 'normal') -> _Set:
+    def unique(self, mode: Literal['normal', 'unique', 'consecutive'] = 'normal') -> Self:
         
         """
         Remove duplicate elements based on the specified mode.
@@ -1247,7 +1295,7 @@ class _Set:
             self.vals = self.vals[np.insert(self.vals[1:] != self.vals[:-1], 0, True)]
         return self
 
-    def append(self, other: ArrayLike | Numeric = 0) -> _Set:
+    def append(self, other: ArrayLike | Numeric = 0) -> Self:
         
         """
         Append element(s) to the end of the set.
@@ -1267,29 +1315,7 @@ class _Set:
         self.vals = np.append(self.vals, other)
         return self
 
-    def pad(self, n_pad: int = 1, item: Numeric = 0) -> _Set:
-        
-        """
-        Pad the set by adding elements at the end.
-
-        :param n_pad: Number of elements to add. Defaults to 1.
-        :type n_pad: int
-        :param item: Value to pad with. Defaults to 0.
-        :type item: Numeric
-        :return: This set with padded elements.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> s.pad(2, 0).values
-        [1.0, 2.0, 3.0, 0.0, 0.0]
-        """
-        
-        self.vals = np.pad(self.vals, (0, n_pad), constant_values=item)
-        return self
-
-    def sort(self, type: Literal['<', '>', 'r'] = '<') -> _Set:
+    def sort(self, type: Literal['<', '>', 'r'] = '<') -> Self:
         
         """
         Sort elements in the specified order.
@@ -1324,7 +1350,7 @@ class _Set:
         
         return self
 
-    def interleave(self, other: ArrayLike = [0], step: int = 1) -> _Set:
+    def interleave(self, other: ArrayLike = [0], step: int = 1) -> Self:
         
         """
         Interleave elements from this set and another sequence.
@@ -1351,7 +1377,7 @@ class _Set:
         a = self.vals
         results = []
 
-        if isinstance(other, _Set):
+        if isinstance(other, self.__class__):
             b = other.vals
 
         while i < len(a) or i < len(b):
@@ -1363,7 +1389,7 @@ class _Set:
 
         return type(self)(results)
     
-    def round(self, decimals: int = 1) -> _Set:
+    def round(self, decimals: int = 1) -> Self:
         
         """
         Round values to a specified number of decimal places.
@@ -1385,7 +1411,7 @@ class _Set:
         self.vals = np.round(self.vals, decimals)
         return self
     
-    def ceil(self) -> _Set:
+    def ceil(self) -> Self:
         
         """
         Round values up to the nearest integer.
@@ -1403,7 +1429,7 @@ class _Set:
         self.vals = np.ceil(self.vals)
         return self
     
-    def floor(self) -> _Set:
+    def floor(self) -> Self:
         
         """
         Round values down to the nearest integer.
@@ -1421,7 +1447,7 @@ class _Set:
         self.vals = np.floor(self.vals)
         return self
     
-    def filter(self, condition: np.ndarray | list | str , fill=None) -> _Set:
+    def filter(self, condition: np.ndarray | list | str , fill=None) -> Self:
         
         """
         Filter elements based on a condition.
@@ -1597,7 +1623,7 @@ class _Set:
         else:
             raise ValueError(f'Incorrect fomat input: {id}')
 
-    def split(self, *, idx: int | list[int] = None, items: float | list[float] = None, keep_separator: bool = True, split: Literal['before', 'after'] = 'after',) -> list["_Set"]:
+    def split(self, *, idx: int | list[int] = None, items: float | list[float] = None, keep_separator: bool = True, split: Literal['before', 'after'] = 'after',) -> list[Self]:
         
         """
         Split the set into multiple sets at specified positions or values.
@@ -1635,7 +1661,7 @@ class _Set:
 
         vals = self.vals
         n = len(vals)
-        parts: list[_Set] = []
+        parts: list[Self] = []
 
         if idx is not None:
             try:
@@ -1686,7 +1712,8 @@ class _Set:
 
         return parts
     
-    def interpolation(self, other: _Set = None, step: int = 0, curve: float = 1) -> _Set:
+    def interpolation(self, other: Self = None, step: int = 0, curve: float = 1) -> Self:
+        
         """
         Interpolate between this set and another set over a number of steps.
 
@@ -1718,7 +1745,8 @@ class _Set:
 
         return [self.__class__(x).round(decimals=2) for x in result]
 
-    def normalize(self, mix: Numeric = 0, max: Numeric = 1) -> _Set:
+    def normalize(self, mix: Numeric = 0, max: Numeric = 1) -> Self:
+        
         """
         Normalize values to a specified range.
 
@@ -1740,28 +1768,10 @@ class _Set:
         """
         self.vals = self.scaled(min=mix, max=max)
         return self
-    
-    @property
-    def contour(self) -> list:
-        """
-        Get the contour of the set as sign changes of consecutive differences.
-
-        Returns a list of signs (+1, 0, -1) indicating whether each consecutive
-        pair of values is ascending, flat, or descending.
-
-        :return: List of signs representing the contour shape.
-        :rtype: list
-
-        :Example:
-
-        >>> s = _Set([1, 3, 2, 5, 4])
-        >>> s.contour
-        [1.0, -1.0, 1.0, -1.0]
-        """
-        return np.sign(self.deltas).tolist()
 
     @classmethod
-    def rand_int(cls, size: int = 1, min: int = 0, max: int = 12, unique: bool = True) -> _Set:
+    def rand_int(cls, size: int = 1, min: int = 0, max: int = 12, unique: bool = True) -> Self:
+        
         """
         Create a set with random integer values.
 
@@ -1788,7 +1798,8 @@ class _Set:
         return cls(np.random.choice(range(min, max), size, replace=not unique))
         
     @classmethod      
-    def rand_flt(cls, size: int = 1, min: int = 0, max: int = 12, decimals: int = 2) -> _Set:
+    def rand_flt(cls, size: int = 1, min: float = 0, max: float = 12, decimals: int = 2) -> Self:
+        
         """
         Create a set with random floating-point values.
 
@@ -1798,9 +1809,9 @@ class _Set:
         :param size: Number of random floats to generate. Defaults to 1.
         :type size: int
         :param min: Minimum value. Defaults to 0.
-        :type min: int
+        :type min: float
         :param max: Maximum value. Defaults to 12.
-        :type max: int
+        :type max: float
         :param decimals: Number of decimal places. Defaults to 2.
         :type decimals: int
         :return: A new set with random float values.
@@ -1816,7 +1827,8 @@ class _Set:
         return cls(np.round(vals, decimals=decimals))
     
     @classmethod
-    def n_time(cls, item: Numeric | list[Numeric] = 0, size: int = 1) -> _Set:
+    def n_time(cls, item: Numeric | list[Numeric] = 0, size: int = 1) -> Self:
+        
         """
         Create a set by repeating an item multiple times.
 
