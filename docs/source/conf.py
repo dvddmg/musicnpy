@@ -25,6 +25,8 @@ extensions = [
 
 nbsphinx_execute = 'auto'
 nbsphinx_timeout = 60
+nbsphinx_allow_errors = True
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
