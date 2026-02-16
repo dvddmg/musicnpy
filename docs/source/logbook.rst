@@ -1,7 +1,6 @@
-==========================
+******************************
 Logbook
-==========================
---------------------------
+******************************
 
 Questa pagina è un piccolo diario di bordo che documenta lo sviluppo della libreria **musicnpy**.
 Al suo interno si possono trovare informazioni riguardanti la sua struttura e le funzionalità da implementare in futuro.

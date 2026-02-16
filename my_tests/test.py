@@ -12,3 +12,27 @@ c = [x.round(decimals=0).values for x in c]
 d = [x.round(decimals=0).values for x in d]
 
 Staff(c + d, filename='./scores/chords', format='pdf').make_file
+
+
+
+# a = [89, 90, 90, 90, 90, 100]
+
+
+# id = 0
+# current = a[id]
+# next = a[id+1]
+
+# out = []
+
+# for i in a:
+    
+#     if next == current:
+#         out.append(0)
+#         next = a[id+1]
+#         print('uguale')
+#     else:
+#         out.append(i)
+#         current = a[id]
+#     id += 1
+
+# print(out)

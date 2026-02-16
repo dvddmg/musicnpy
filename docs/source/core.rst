@@ -1,7 +1,6 @@
-====================
+******************************
 Core
-====================
---------------------
+******************************
 
 .. currentmodule:: musicnpy.core
 
@@ -51,10 +50,10 @@ These properties and methods allow access to various attributes of the _Set obje
 .. autoattribute:: _Set.values
 .. autoattribute:: _Set.original
 .. autoattribute:: _Set.deltas
-.. autoattribute:: _Set.median
+.. autoattribute:: _Set.mean
 .. autoattribute:: _Set.odd
 .. autoattribute:: _Set.even
-.. autoattribute:: _Set.contour
+.. autoattribute:: _Set.profile
 .. automethod:: _Set.__len__
 .. automethod:: _Set.getitems
 .. automethod:: _Set.getids

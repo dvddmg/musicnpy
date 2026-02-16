@@ -4,9 +4,9 @@
 \header {
 	tagline=""
 	}
-        #(set! paper-alist (cons '("mio formato" . (cons (* 150 mm) (* 100 mm))) paper-alist) )
+        
 \paper {
-	#(set-paper-size "mio formato")
+	#(set-paper-size "a4landscape")
 	top-margin=10
 	bottom-margin=10
 	left-margin=10
@@ -20,21 +20,15 @@
 				  midiInstrument="acoustic grand"
 				  } {
 				 <<
-  				 { ds e f fs g gs a  }
+  				 { c' d' e' f' g' a' b' c'' < c' e' g' > < d' f' a' > < e' g' b' > < f' a' c'' > < g' b' d'' > < a' c'' e'' > < b' d'' f'' > < c'' e'' g'' >  }
  				 >>
 		}
 		\new Staff \with {
 				  midiInstrument="acoustic grand"
 				  } {
+				  \key ef \major
 				 <<
-  				 { ds e f fs g gs a  }
- 				 >>
-		}
-		\new Staff \with {
-				  midiInstrument="acoustic grand"
-				  } {
-				 <<
-  				 { e''' e''' f''' f''' fs''' fs''' g''' g''' gs''' gs''' a''' a''' as''' as'''  }
+  				 { c' d' ef' f' g' af' bf' c < c' ef' g' > < d' f' af' > < ef' g' bf' > < f' af' c'' > < g' bf' d'' > < af' c'' ef'' > < bf' d'' f'' > < c'' ef'' g'' >  }
  				 >>
 		}
 		>>

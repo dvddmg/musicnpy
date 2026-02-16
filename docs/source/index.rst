@@ -1,5 +1,6 @@
+******************************
 musicnpy
-=====================
+******************************
 
 .. currentmodule:: musicnpy 
 .. code-block:: python
@@ -20,6 +21,7 @@ musicnpy
    logbook
    core
    pitch
+   chord
    durs
    velo
    data

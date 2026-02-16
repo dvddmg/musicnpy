@@ -1,0 +1,10 @@
+# Spettri normail fondamentale numero di armonici
+# Microtoni
+# RM array con accordo, una singola frequenza come modulante, side band, prevedere i limiti in cui avere l'accordo
+# Interpolazioni tra spettri
+# interpolazioni con profili
+# morphing
+# filtraggio masking
+# Morphing inverso, da acuto a a grave. Morphing a chiasmo
+# negativo
+# Filtrare uno spettro iniziale utilizzando le note di un'altro

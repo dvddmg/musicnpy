@@ -9,8 +9,8 @@ from typing import Self, TypeAlias, Callable, Any, Literal
 from collections.abc import Sequence, Iterator
 
 Numeric = numbers.Real
-ArrayLike = Sequence[Numeric] | np.ndarray
-Index = int | slice | Sequence[int] | np.ndarray
+ArrayLike = Sequence[Numeric]
+Index = int | slice | Sequence[int]
 
 def pad(list: ArrayLike = None, n_pad: int = 1, item: Numeric = 0) -> Self:
     
@@ -33,7 +33,7 @@ def pad(list: ArrayLike = None, n_pad: int = 1, item: Numeric = 0) -> Self:
     """
     
     return np.pad(list, (0, n_pad), constant_values=item)
-    
+
 class _Set:
 
     def __init__(self, values: ArrayLike, offset: Numeric = 0) -> None:
@@ -56,9 +56,26 @@ class _Set:
         [11.0, 12.0, 13.0]
         """
 
-        self.offset: Numeric = offset
-        self.set: np.ndarray = np.array(values) + self.offset
-        self.vals: np.ndarray = self.set.copy()
+        self.offset = offset
+        self.set = np.array(values) + self.offset if isinstance(values, list) else np.array([values]) + self.offset
+        self.vals = self.set.copy()
+
+    def __repr__(self) -> str:
+        
+        """
+        Return a string representation of the set.
+
+        :return: String in the format ``ClassName = [values]``.
+        :rtype: str
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> repr(s)
+        '_Set = [1.0, 2.0, 3.0]'
+        """
+
+        return f'{self.__class__.__name__} = {self.values}'
 
     @property
     def deltas(self) -> list[Numeric]:
@@ -181,10 +198,10 @@ class _Set:
         return self
 
     @property
-    def median(self) -> Numeric:
+    def mean(self) -> Numeric:
         
         """
-        Compute the median value of the set.
+        Compute the mean value of the set.
 
         For sets with an even number of elements, returns the average
         of the two middle values.
@@ -195,7 +212,7 @@ class _Set:
         :Example:
 
         >>> s = _Set([1, 3, 5, 7, 9])
-        >>> s.median
+        >>> s.mean
         5.0
         """
 
@@ -229,10 +246,10 @@ class _Set:
         return new
     
     @property
-    def contour(self) -> list:
+    def profile(self) -> list:
         
         """
-        Get the contour of the set as sign changes of consecutive differences.
+        Get the profile of the set as sign changes of consecutive differences.
 
         Returns a list of signs (+1, 0, -1) indicating whether each consecutive
         pair of values is ascending, flat, or descending.
@@ -243,7 +260,7 @@ class _Set:
         :Example:
 
         >>> s = _Set([1, 3, 2, 5, 4])
-        >>> s.contour
+        >>> s.profile
         [1.0, -1.0, 1.0, -1.0]
         """
         return np.sign(self.deltas).tolist()
@@ -281,511 +298,6 @@ class _Set:
         """
 
         return iter(v.item() if hasattr(v, 'item') else v for v in self.vals)
-
-    def _align(self, other: ArrayLike | Numeric, fill: Numeric) -> tuple[np.ndarray, np.ndarray]:
-
-        """
-        Align two arrays to the same length by padding the shorter one.
-
-        :param other: The array or set to align with.
-        :type other: ArrayLike | Numeric
-        :param fill: Value used to pad the shorter array.
-        :type fill: Numeric
-        :return: Tuple of two aligned numpy arrays of equal length.
-        :rtype: tuple[np.ndarray, np.ndarray]
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> a, b = s._align([4, 5], fill=0)
-        >>> b.tolist()
-        [4.0, 5.0, 0.0]
-        """
-
-        a = self.vals
-        b = other.vals if isinstance(other, Self) else np.array(other)
-        if len(b) < len(a):
-            b = pad(b.tolist(), len(a) - len(b), fill)
-        elif len(b) > len(a):
-            a = pad(a.tolist(), len(b) - len(a), fill)
-        return np.array(a), np.array(b)
-
-    def _binary_op(self, other: ArrayLike | Numeric, op: Callable[[Any, Any], np.ndarray], fill: Numeric, reversed: bool = False) -> np.ndarray:
-
-        """
-        Perform a binary operation between this set and another operand.
-
-        :param other: The right-hand operand (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :param op: The binary operator function to apply.
-        :type op: Callable[[Any, Any], np.ndarray]
-        :param fill: Value used to pad shorter arrays during alignment. Defaults to 0.
-        :type fill: Numeric
-        :param reversed: If True, swap operand order. Defaults to False.
-        :type reversed: bool
-        :return: Result of the operation as a numpy array.
-        :rtype: np.ndarray
-        :raises TypeError: If the operand type is not supported.
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> result = s._binary_op(10, operator.add)
-        >>> result.tolist()
-        [11.0, 12.0, 13.0]
-        """
-
-        with np.errstate(divide="ignore", invalid="ignore"):
-
-            if isinstance(other, self.__class__):
-                a, b = self._align(other, fill)
-                lhs, rhs = (b, a) if reversed else (a, b)
-
-            elif isinstance(other, (list, np.ndarray)):
-                other = Self(other)
-                a, b = self._align(other, fill)
-                lhs, rhs = (b, a) if reversed else (a, b)
-
-            elif isinstance(other, numbers.Real):
-                lhs, rhs = (other, self.vals) if reversed else (self.vals, other)
-
-            else:
-                raise TypeError(f"Unsupported operand type: {type(other)}")
-
-            return op(lhs, rhs)
-        
-    def __add__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Add values element-wise using the ``+`` operator.
-
-        :param other: Values to add (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the sum of values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> (s + 10).values
-        [11.0, 12.0, 13.0]
-        """
-
-        return Self(self._binary_op(other, operator.add, fill=0))
-
-    def __radd__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Add values with reversed operand order using the ``+`` operator.
-
-        :param other: Values to add (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the sum of values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> (10 + s).values
-        [11.0, 12.0, 13.0]
-        """
-
-        return Self(self._binary_op(other, operator.add, fill=0, reversed=True))
-
-    def __iadd__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Add values in-place using the ``+=`` operator.
-
-        :param other: Values to add (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: This set with updated values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> s += 5
-        >>> s.values
-        [6.0, 7.0, 8.0]
-        """
-
-        self.vals = self._binary_op(other, operator.add, fill=0)
-        return self
-
-    def __sub__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Subtract values element-wise using the ``-`` operator.
-
-        :param other: Values to subtract (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the difference of values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([10, 20, 30])
-        >>> (s - 5).values
-        [5.0, 15.0, 25.0]
-        """
-
-        return Self(self._binary_op(other, operator.sub, fill=0))
-
-    def __rsub__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Subtract with reversed operand order using the ``-`` operator.
-
-        :param other: Value to subtract from (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the difference of values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> (10 - s).values
-        [9.0, 8.0, 7.0]
-        """
-
-        return Self(self._binary_op(other, operator.sub, fill=0, reversed=True))
-
-    def __isub__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Subtract values in-place using the ``-=`` operator.
-
-        :param other: Values to subtract (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: This set with updated values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([10, 20, 30])
-        >>> s -= 5
-        >>> s.values
-        [5.0, 15.0, 25.0]
-        """
-
-        self.vals = self._binary_op(other, operator.sub, fill=0)
-        return self
-
-    def __mul__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Multiply values element-wise using the ``*`` operator.
-
-        :param other: Values to multiply by (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the product of values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> (s * 10).values
-        [10.0, 20.0, 30.0]
-        """
-        result = self.copy()   # copia profonda dei valori
-        result *= other        # forza __imul__
-        return result
-        # return _Set(self._binary_op(other, operator.mul, fill=1))
-
-    def __rmul__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Multiply with reversed operand order using the ``*`` operator.
-
-        :param other: Values to multiply by (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the product of values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> (10 * s).values
-        [10.0, 20.0, 30.0]
-        """
-
-        return Self(self._binary_op(other, operator.mul, fill=1, reversed=True))
-
-    def __imul__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Multiply values in-place using the ``*=`` operator.
-
-        :param other: Values to multiply by (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: This set with updated values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> s *= 5
-        >>> s.values
-        [5.0, 10.0, 15.0]
-        """
-
-        result = self._binary_op(other, operator.mul, fill=1)
-        self.vals[:] = result
-        return self
-
-    def __truediv__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Divide values element-wise using the ``/`` operator.
-
-        :param other: Values to divide by (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the quotient of values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([10, 20, 30])
-        >>> (s / 2).values
-        [5.0, 10.0, 15.0]
-        """
-
-        return Self(self._binary_op(other, operator.truediv, fill=1))
-
-    def __rtruediv__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Divide with reversed operand order using the ``/`` operator.
-
-        :param other: Value to be divided (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the quotient of values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([2, 4, 5])
-        >>> (20 / s).values
-        [10.0, 5.0, 4.0]
-        """
-
-        return Self(self._binary_op(other, operator.truediv, fill=1, reversed=True))
-
-    def __itruediv__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Divide values in-place using the ``/=`` operator.
-
-        :param other: Values to divide by (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: This set with updated values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([10, 20, 30])
-        >>> s /= 2
-        >>> s.values
-        [5.0, 10.0, 15.0]
-        """
-
-        self.vals = self._binary_op(other, operator.truediv, fill=1)
-        return self
-    
-    def __floordiv__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Perform floor division element-wise using the ``//`` operator.
-
-        :param other: Values to divide by (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the floor-divided values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([10, 20, 30])
-        >>> (s // 3).values
-        [3.0, 6.0, 10.0]
-        """
-
-        return Self(self._binary_op(other, operator.floordiv, fill=1))
-    
-    def __rfloordiv__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Perform floor division with reversed operand order using the ``//`` operator.
-
-        :param other: Value to be divided (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with the floor-divided values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([3, 4, 5])
-        >>> (20 // s).values
-        [6.0, 5.0, 4.0]
-        """
-
-        return Self(self._binary_op(other, operator.floordiv, fill=1, reversed=True))
-    
-    def __ifloordiv__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Perform floor division in-place using the ``//=`` operator.
-
-        :param other: Values to divide by (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: This set with updated values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([10, 20, 30])
-        >>> s //= 3
-        >>> s.values
-        [3.0, 6.0, 10.0]
-        """
-
-        self.vals = self._binary_op(other, operator.floordiv, fill=1)
-        return self
-
-    def __pow__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Raise values to a power element-wise using the ``**`` operator.
-
-        :param other: Exponent values (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with exponentiated values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([2, 3, 4])
-        >>> (s ** 2).values
-        [4.0, 9.0, 16.0]
-        """
-
-        return Self(self._binary_op(other, operator.pow, fill=1))
-
-    def __rpow__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Raise to a power with reversed operand order using the ``**`` operator.
-
-        :param other: Base value (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with exponentiated values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([2, 3, 4])
-        >>> (2 ** s).values
-        [4.0, 8.0, 16.0]
-        """
-
-        return Self(self._binary_op(other, operator.pow, fill=1, reversed=True))
-
-    def __ipow__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Raise values to a power in-place using the ``**=`` operator.
-
-        :param other: Exponent values (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: This set with updated values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([2, 3, 4])
-        >>> s **= 2
-        >>> s.values
-        [4.0, 9.0, 16.0]
-        """
-        
-        self.vals = self._binary_op(other, operator.pow, fill=1)
-        return self
-    
-    def __mod__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Compute modulo element-wise using the ``%`` operator.
-
-        :param other: Divisor values (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with remainder values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([10, 15, 20])
-        >>> (s % 3).values
-        [1.0, 0.0, 2.0]
-        """
-        
-        return Self(self._binary_op(other, operator.mod, fill=1))
-
-    def __rmod__(self, other: ArrayLike | Numeric) -> Self:
-
-        """
-        Compute modulo with reversed operand order using the ``%`` operator.
-
-        :param other: Dividend value (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: A new set with remainder values.
-        :rtype: _Set
-
-        :Example:
-
-        >>> s = _Set([3, 4, 6])
-        >>> (20 % s).values
-        [2.0, 0.0, 2.0]
-        """
-
-        return Self(self._binary_op(other, operator.mod, fill=1, reversed=True))
-
-    def __imod__(self, other: ArrayLike | Numeric) -> Self:
-        
-        """
-        Compute modulo in-place using the ``%=`` operator.
-
-        :param other: Divisor values (set, sequence, or scalar).
-        :type other: ArrayLike | Numeric
-        :return: This set with updated values.
-        :rtype: Self
-
-        :Example:
-
-        >>> s = _Set([10, 15, 20])
-        >>> s %= 3
-        >>> s.values
-        [1.0, 0.0, 2.0]
-        """
-
-        self.vals = self._binary_op(other, operator.mod, fill=1)
-        return self
-
-    def __repr__(self) -> str:
-        
-        """
-        Return a string representation of the set.
-
-        :return: String in the format ``ClassName = [values]``.
-        :rtype: str
-
-        :Example:
-
-        >>> s = _Set([1, 2, 3])
-        >>> repr(s)
-        '_Set = [1.0, 2.0, 3.0]'
-        """
-
-        return f'{self.__class__.__name__} = {self.values}'
 
     def __getitem__(self, key: Index) -> Numeric:
         
@@ -837,6 +349,494 @@ class _Set:
         else:
             raise TypeError('Invalid index type')
 
+    def _align(self, other: ArrayLike | Numeric, fill: Numeric) -> tuple[np.ndarray, np.ndarray]:
+
+        """
+        Align two arrays to the same length by padding the shorter one.
+
+        :param other: The array or set to align with.
+        :type other: ArrayLike | Numeric
+        :param fill: Value used to pad the shorter array.
+        :type fill: Numeric
+        :return: Tuple of two aligned numpy arrays of equal length.
+        :rtype: tuple[np.ndarray, np.ndarray]
+
+        NB use this methods only in the class!!
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> a, b = s._align([4, 5], fill=0)
+        >>> b.tolist()
+        [4.0, 5.0, 0.0]
+        """
+
+        a = self.vals
+        b = other.vals if isinstance(other, self.__class__) else np.array(other)
+        if len(b) < len(a):
+            b = pad(b.tolist(), len(a) - len(b), fill)
+        elif len(b) > len(a):
+            a = pad(a.tolist(), len(b) - len(a), fill)
+        return np.array(a), np.array(b)
+
+    def _binary_op(self, other: ArrayLike | Numeric, op: Callable[[Any, Any], np.ndarray], fill: Numeric, reversed: bool = False) -> np.ndarray:
+
+        """
+        Perform a binary operation between this set and another operand.
+
+        :param other: The right-hand operand (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :param op: The binary operator function to apply.
+        :type op: Callable[[Any, Any], np.ndarray]
+        :param fill: Value used to pad shorter arrays during alignment. Defaults to 0.
+        :type fill: Numeric
+        :param reversed: If True, swap operand order. Defaults to False.
+        :type reversed: bool
+        :return: Result of the operation as a numpy array.
+        :rtype: np.ndarray
+        :raises TypeError: If the operand type is not supported.
+
+        NB use this methods only in the class!!
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> result = s._binary_op(10, operator.add)
+        >>> result.tolist()
+        [11.0, 12.0, 13.0]
+        """
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+
+            if isinstance(other, self.__class__):
+                a, b = self._align(other, fill)
+                lhs, rhs = (b, a) if reversed else (a, b)
+
+            elif isinstance(other, (list, np.ndarray)):
+                other = type(self)(other)
+                a, b = self._align(other, fill)
+                lhs, rhs = (b, a) if reversed else (a, b)
+
+            elif isinstance(other, numbers.Real):
+                lhs, rhs = (other, self.vals) if reversed else (self.vals, other)
+
+            else:
+                raise TypeError(f"Unsupported operand type: {type(other)}")
+
+            return op(lhs, rhs)
+        
+    def __add__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Add values element-wise using the ``+`` operator.
+
+        :param other: Values to add (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the sum of values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> (s + 10).values
+        [11.0, 12.0, 13.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.add, fill=0).tolist())
+
+    def __radd__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Add values with reversed operand order using the ``+`` operator.
+
+        :param other: Values to add (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the sum of values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> (10 + s).values
+        [11.0, 12.0, 13.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.add, fill=0, reversed=True).tolist())
+
+    def __iadd__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Add values in-place using the ``+=`` operator.
+
+        :param other: Values to add (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: This set with updated values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> s += 5
+        >>> s.values
+        [6.0, 7.0, 8.0]
+        """
+
+        self.vals = self._binary_op(other, operator.add, fill=0)
+        return self
+
+    def __sub__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Subtract values element-wise using the ``-`` operator.
+
+        :param other: Values to subtract (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the difference of values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([10, 20, 30])
+        >>> (s - 5).values
+        [5.0, 15.0, 25.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.sub, fill=0).tolist())
+
+    def __rsub__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Subtract with reversed operand order using the ``-`` operator.
+
+        :param other: Value to subtract from (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the difference of values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> (10 - s).values
+        [9.0, 8.0, 7.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.sub, fill=0, reversed=True).tolist())
+
+    def __isub__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Subtract values in-place using the ``-=`` operator.
+
+        :param other: Values to subtract (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: This set with updated values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([10, 20, 30])
+        >>> s -= 5
+        >>> s.values
+        [5.0, 15.0, 25.0]
+        """
+
+        self.vals = self._binary_op(other, operator.sub, fill=0)
+        return self
+
+    def __mul__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Multiply values element-wise using the ``*`` operator.
+
+        :param other: Values to multiply by (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the product of values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> (s * 10).values
+        [10.0, 20.0, 30.0]
+        """
+        return type(self)(self._binary_op(other, operator.mul, fill=1).tolist())
+
+    def __rmul__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Multiply with reversed operand order using the ``*`` operator.
+
+        :param other: Values to multiply by (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the product of values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> (10 * s).values
+        [10.0, 20.0, 30.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.mul, fill=1, reversed=True))
+
+    def __imul__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Multiply values in-place using the ``*=`` operator.
+
+        :param other: Values to multiply by (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: This set with updated values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([1, 2, 3])
+        >>> s *= 5
+        >>> s.values
+        [5.0, 10.0, 15.0]
+        """
+
+        self.vals = self._binary_op(other, operator.mul, fill=1)
+        return self
+
+    def __truediv__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Divide values element-wise using the ``/`` operator.
+
+        :param other: Values to divide by (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the quotient of values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([10, 20, 30])
+        >>> (s / 2).values
+        [5.0, 10.0, 15.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.truediv, fill=1).tolist())
+
+    def __rtruediv__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Divide with reversed operand order using the ``/`` operator.
+
+        :param other: Value to be divided (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the quotient of values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([2, 4, 5])
+        >>> (20 / s).values
+        [10.0, 5.0, 4.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.truediv, fill=1, reversed=True).tolist())
+
+    def __itruediv__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Divide values in-place using the ``/=`` operator.
+
+        :param other: Values to divide by (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: This set with updated values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([10, 20, 30])
+        >>> s /= 2
+        >>> s.values
+        [5.0, 10.0, 15.0]
+        """
+
+        self.vals = self._binary_op(other, operator.truediv, fill=1)
+        return self
+    
+    def __floordiv__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Perform floor division element-wise using the ``//`` operator.
+
+        :param other: Values to divide by (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the floor-divided values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([10, 20, 30])
+        >>> (s // 3).values
+        [3.0, 6.0, 10.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.floordiv, fill=1).tolist())
+    
+    def __rfloordiv__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Perform floor division with reversed operand order using the ``//`` operator.
+
+        :param other: Value to be divided (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with the floor-divided values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([3, 4, 5])
+        >>> (20 // s).values
+        [6.0, 5.0, 4.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.floordiv, fill=1, reversed=True).tolist())
+    
+    def __ifloordiv__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Perform floor division in-place using the ``//=`` operator.
+
+        :param other: Values to divide by (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: This set with updated values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([10, 20, 30])
+        >>> s //= 3
+        >>> s.values
+        [3.0, 6.0, 10.0]
+        """
+
+        self.vals = self._binary_op(other, operator.floordiv, fill=1)
+        return self
+
+    def __pow__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Raise values to a power element-wise using the ``**`` operator.
+
+        :param other: Exponent values (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with exponentiated values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([2, 3, 4])
+        >>> (s ** 2).values
+        [4.0, 9.0, 16.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.pow, fill=1).tolist())
+
+    def __rpow__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Raise to a power with reversed operand order using the ``**`` operator.
+
+        :param other: Base value (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with exponentiated values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([2, 3, 4])
+        >>> (2 ** s).values
+        [4.0, 8.0, 16.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.pow, fill=1, reversed=True).tolist())
+
+    def __ipow__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Raise values to a power in-place using the ``**=`` operator.
+
+        :param other: Exponent values (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: This set with updated values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([2, 3, 4])
+        >>> s **= 2
+        >>> s.values
+        [4.0, 9.0, 16.0]
+        """
+        
+        self.vals = self._binary_op(other, operator.pow, fill=1)
+        return self
+    
+    def __mod__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Compute modulo element-wise using the ``%`` operator.
+
+        :param other: Divisor values (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with remainder values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([10, 15, 20])
+        >>> (s % 3).values
+        [1.0, 0.0, 2.0]
+        """
+        
+        return type(self)(self._binary_op(other, operator.mod, fill=1).tolist())
+
+    def __rmod__(self, other: ArrayLike | Numeric) -> Self:
+
+        """
+        Compute modulo with reversed operand order using the ``%`` operator.
+
+        :param other: Dividend value (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: A new set with remainder values.
+        :rtype: _Set
+
+        :Example:
+
+        >>> s = _Set([3, 4, 6])
+        >>> (20 % s).values
+        [2.0, 0.0, 2.0]
+        """
+
+        return type(self)(self._binary_op(other, operator.mod, fill=1, reversed=True).tolist())
+
+    def __imod__(self, other: ArrayLike | Numeric) -> Self:
+        
+        """
+        Compute modulo in-place using the ``%=`` operator.
+
+        :param other: Divisor values (set, sequence, or scalar).
+        :type other: ArrayLike | Numeric
+        :return: This set with updated values.
+        :rtype: Self
+
+        :Example:
+
+        >>> s = _Set([10, 15, 20])
+        >>> s %= 3
+        >>> s.values
+        [1.0, 0.0, 2.0]
+        """
+
+        self.vals = self._binary_op(other, operator.mod, fill=1)
+        return self
+
     def __abs__(self) -> Self:
         
         """
@@ -852,7 +852,7 @@ class _Set:
         [1.0, 2.0, 3.0, 4.0]
         """
 
-        return type(self)(np.abs(self.values))
+        return type(self)(np.abs(self.values).tolist())
     
     def _abs(self) -> Self:
         
@@ -887,7 +887,7 @@ class _Set:
         [-1.0, -2.0, -3.0]
         """
         
-        return type(self)(-self.vals)
+        return type(self)((-self.vals).tolist())
 
     def _neg(self) -> Self:
         
@@ -1447,7 +1447,7 @@ class _Set:
         self.vals = np.floor(self.vals)
         return self
     
-    def filter(self, condition: np.ndarray | list | str , fill=None) -> Self:
+    def filter(self, condition:  list | str , fill=None) -> Self:
         
         """
         Filter elements based on a condition.
@@ -1455,7 +1455,7 @@ class _Set:
         :param condition: The filtering condition. Can be:
 
             - A boolean array or list.
-            - A string expression using ``x`` for values and ``np`` for numpy.
+            - A string expression using ``x`` for values.
             - A callable returning a boolean array.
         :type condition: np.ndarray | list | str | callable
         :param fill: Value to replace non-matching elements. If None,
@@ -1463,7 +1463,8 @@ class _Set:
         :type fill: Numeric
         :return: This set with filtered elements.
         :rtype: Self
-
+        #TODO al posto della stringa usare 0,1,0,1,1,0,0; implementare anche la possibilità di passare in input delle liste
+        # aggiungere _align per evitare di incorrere in errori
         :Example:
 
         >>> s = _Set([1, 2, 3, 4, 5, 6])
@@ -1471,7 +1472,7 @@ class _Set:
         [4.0, 5.0, 6.0]
         """
 
-        if isinstance(condition, (list, np.ndarray)):
+        if isinstance(condition, list):
             mask = np.asarray(condition, dtype=bool)
         elif isinstance(condition, str):
             mask = eval(condition, {'x': self.vals, 'np': np})
@@ -1644,7 +1645,8 @@ class _Set:
         :rtype: list[_Set]
         :raises ValueError: If neither or both idx and items are provided,
             or if split mode is invalid.
-
+        # TODO DIVIDI PER IL NUMERO DI ELEMTNI PER IL SINGOLO ARRAY, PER QUANTITà "Fami 3 liste di questa grandezza [3, 3, 3, 1] elementi
+        
         :Example:
 
         >>> s = _Set([1, 2, 3, 4, 5])
@@ -1712,7 +1714,7 @@ class _Set:
 
         return parts
     
-    def interpolation(self, other: Self = None, step: int = 0, curve: float = 1) -> Self:
+    def interpolation(self, other: Self = None, step: int = 0, curve: float = 1, decimals: int = 0) -> tuple:
         
         """
         Interpolate between this set and another set over a number of steps.
@@ -1743,7 +1745,8 @@ class _Set:
         t_curve = t ** curve
         result = self.vals + (other.vals - self.vals) * t_curve[:, np.newaxis]
 
-        return [self.__class__(x).round(decimals=2) for x in result]
+        return [self.__class__(x).round(decimals=decimals) for x in result.tolist()]
+        
 
     def normalize(self, mix: Numeric = 0, max: Numeric = 1) -> Self:
         
@@ -1850,3 +1853,38 @@ class _Set:
         [1.0, 2.0, 1.0, 2.0, 1.0, 2.0]
         """
         return cls(np.tile(np.asarray(item), size))
+    
+
+# a = _Set(1) funziona
+# a = _Set([1, 2, 3, 4])
+# print(a)
+# print(f'deltas = {a.deltas}')
+# print(f'odd = {a.odd}')
+# print(f'even = {a.even}')
+# print(f'values = {a.values}')
+# print(f'original = {a.original}')
+# print(f'reset = {a.reset}')
+# print(f'mean = {a.mean}')
+# print(f'copy = {a.copy}')
+# print(f'profile = {a.profile}')
+# print(f'len = {len(a)}')
+# print(f'max = {max(a)}')
+# print(f'min = {min(a)}')
+# print('iter')
+# for i in a:
+#     print(f'item = {i}')
+# print(f'getitem = {a[2]}')
+# a[1] = 10
+# print(f'setitem = {a.values}')
+# b = a + 1
+# print(f'add = {a}')
+# b = 1 + a
+# print(f'radd = {a}')
+# a += 1
+# print(f'iadd = {a.values}')
+# b = a - 2
+# print(f'subb = {a}')
+# b = 2 - a
+# print(f'rsubb = {a}')
+# a -= 1
+# print(f'isubb = {a.values}')
