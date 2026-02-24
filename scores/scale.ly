@@ -20,7 +20,14 @@
 				  midiInstrument="acoustic grand"
 				  } {
 				 <<
-  				 { c' d' e' f' g' a' b' c'' < c' e' g' > < d' f' a' > < e' g' b' > < f' a' c'' > < g' b' d'' > < a' c'' e'' > < b' d'' f'' > < c'' e'' g'' >  }
+  				 { c' d' e' f' g' a' b'  }
+ 				 >>
+		}
+		\new Staff \with {
+				  midiInstrument="acoustic grand"
+				  } {
+				 <<
+  				 { < c' e' g' > < d' f' a' > < e' g' b' > < f' a' c'' > < g' b' d'' > < a' c'' e'' > < b' d'' f'' >  }
  				 >>
 		}
 		\new Staff \with {
@@ -28,7 +35,15 @@
 				  } {
 				  \key ef \major
 				 <<
-  				 { c' d' ef' f' g' af' bf' c < c' ef' g' > < d' f' af' > < ef' g' bf' > < f' af' c'' > < g' bf' d'' > < af' c'' ef'' > < bf' d'' f'' > < c'' ef'' g'' >  }
+  				 { c' d' ef' f' g' af' bf'  }
+ 				 >>
+		}
+		\new Staff \with {
+				  midiInstrument="acoustic grand"
+				  } {
+				  \key ef \major
+				 <<
+  				 { < c' ef' g' > < d' f' af' > < ef' g' bf' > < f' af' c'' > < g' bf' d'' > < af' c'' ef'' > < bf' d'' f'' >  }
  				 >>
 		}
 		>>

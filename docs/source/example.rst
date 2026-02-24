@@ -9,3 +9,4 @@ Here are some examples of how to use ``musicnpy``
 
    example/core_example.ipynb
    example/pitch_example.ipynb
+   example/complete_example.ipynb

@@ -10,8 +10,6 @@ This module provides classes and methods for handling musical pitch data.
 It includes the :class:`_PSet` private class, which extends the core :class:`_Set` class to specifically manage pitch-related operations.
 The module also provides the :class:`Chord` and :class:`Scale` classes for handling chords and scales, respectively.
 
-|
-
 _PSet Class
 ===================
 
@@ -25,9 +23,11 @@ This class serves as the base for more specialized pitch classes like :class:`Ch
 .. autoattribute:: _PSet.intervals
 .. autoattribute:: _PSet.root
 .. automethod:: _PSet.to_freq
+.. automethod:: _PSet.to_midi
 .. automethod:: _PSet.from_freq
-
-|
+.. automethod:: _PSet.to_range
+.. automethod:: _PSet.micro_quanta
+.. automethod:: _PSet.scale_quanta
 
 Chord Class
 ===================
@@ -48,26 +48,15 @@ Chords are defined by a list of intervals relative to a root note, and they inhe
    maj = Chord.new(ChordModel.maj, 60)
    print(maj)
 
-|
-
-Initialization
------------------
-Methods for creating and initializing Chord objects.
-
 .. automethod:: Chord.__init__
 .. automethod:: Chord.new
-
-|
-
-Inversions
------------
-Methods for generating chord inversions.
-
 .. automethod:: Chord.n_inversion
 .. autoattribute:: Chord.first_inv
 .. autoattribute:: Chord.second_inv
-
-|
+.. automethod:: Chord.drop
+.. autoattribute:: Chord.drop2
+.. autoattribute:: Chord.drop3
+.. automethod:: Chord.octaver
 
 Scale Class
 ===================
@@ -88,22 +77,25 @@ Scales can be created from interval patterns or from scale models in the databas
    maj = Scale.new(ScaleModel.maj, 60)
    print(maj)
 
-|
-
-Initialization
------------------
-Methods for creating and initializing Scale objects.
-
 .. automethod:: Scale.__init__
 .. automethod:: Scale.new
-
-|
-
-Scale Properties & Methods
----------------------------
-
 .. autoattribute:: Scale.diatonic
 .. autoattribute:: Scale.harmonize
 
-|
+Spectra Class
+===================
+``Spectra`` allow to create a collection of frequencies, that can be used to create a chord or a scale.
+It also provied some class method for create spectra series.
 
+.. code-block:: python
+
+   from musicnpy import Spectra
+
+   # Create a spectra by specifying frequencies
+   s = Spectra([440, 880, 1320])
+   print(s.frequencies)  # [440, 880, 1320]
+   
+.. automethod:: Spectra.__init__
+.. automethod:: Spectra.harm_series
+.. automethod:: Spectra.ring_mod
+.. automethod:: Spectra.to_ring_mod

@@ -15,13 +15,15 @@ Submodules
 - topyly
 """
 __version__ = "0.1.0"
+
 # Import principale
 from .core import _Set
-from .pitch import _PSet, Scale, Chord
+from .pitch import _PSet, Scale, Chord, Spectra
 from .durs import Pattern, grid
 from .data import ScaleModel, ChordModel
 from .collections import PitchSequence
-from .topyly import Staff, _Voice, _Print, _Map, Score, nDim
+from .topyly import Staff, _Voice, _Print, _Map, Score, nDim, l_mod, l_zero, mapPitch, mapDur, mapVel, mapExp, tonalita, dflt, selmode, getmaxsize, dur2sec, note, voice, voices
+
 
 # # Definisce cosa viene esportato con 'from musicnpy import *'
 __all__ = [
@@ -29,6 +31,7 @@ __all__ = [
     "_PSet", 
     "Scale",
     "Chord",
+    "Spectra",
     "PitchSequence",
     "Staff", 
     "_Voice", 
@@ -39,7 +42,19 @@ __all__ = [
     "ChordModel",
     "Pattern",
     "grid",
-    "nDim"
+    "nDim",
+    "l_mod", 
+    "l_zero", 
+    "mapPitch", 
+    "mapDur", 
+    "mapVel", 
+    "mapExp", 
+    "tonalita", 
+    "dflt",
+    "selmode", 
+    "getmaxsize",
+    "dur2sec", 
+    "note", 
+    "voice", 
+    "voices"
 ]
-
-# from musicnpy import *

@@ -23,7 +23,7 @@
 				  \numericTimeSignature
 				  \time 3/4
 				 <<
-  				 { < c'' ef'' g'' > < c' ef' gf' > < df' e' g' > < d' f' af' > < ef' gf' bf' > < f' af' c'' > < g' bf' d'' > < bf' df'' e'' > < c'' ef'' g'' > < c' ef' gf' > < c'' ef'' g'' > < c' ef' gf' > < c'' ef'' g'' > < c' ef' gf' >  }
+  				 { < c'' ef'' g'' > < c' ef' gf' > < df' e' g' > < d' f' af' > < ef' gf' bf' > < f' af' c'' > < g' bf' d'' > < bf' df'' e'' > < c'' ef'' g'' > < c' ef' gf' > < c'' ef'' g'' > < c' ef' gf' > < c'' ef'' g'' > < c' ef' gf' > < c'' ef'' g'' > < bf' df'' e'' > < g' bf' d'' > < f' af' c'' > < ef' gf' bf' > < d' f' af' > < df' e' g' > < c' ef' gf' > < c'' ef'' g'' >  }
  				 >>
 		}
 		>>

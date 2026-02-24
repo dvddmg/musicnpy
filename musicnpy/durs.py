@@ -1,38 +1,70 @@
 from __future__ import annotations
 import numpy as np
+import numbers
+from typing import Literal
+from collections.abc import Sequence
 from fractions import Fraction
-import numbers, operator
-from typing import Self, TypeAlias, Callable, Any, Literal 
-from collections.abc import Sequence, Iterator
 from musicnpy import _Set
 
+NUMERIC = numbers.Real
+ARRAYLIKE = Sequence[NUMERIC] 
+INDEX = int | slice | Sequence[int] 
 
-Numeric = numbers.Real
-ArrayLike = Sequence[Numeric]
-Index = int | slice | Sequence[int]
+def nDim(a):
+    '''Riporta le dimensioni di una lista:
+    1D = Tutto
+    2D = Solo accordi (pitches)
+    3D = Solo ritmi irregolari o puntati
+    '''
+    if not isinstance(a, list):
+        return 0
+    elif not a:
+        return 1
+    else:
+        return 1 + max(nDim(item) for item in a)   # Ricorsione
 
+class Pattern:
 
-class Pattern(_Set):
-    def __init__(self,values = ArrayLike, bpm= 60, t_sig = 4/4):
+    def __init__(self,values: ARRAYLIKE, t_sig: str = '4/4'):
+        """
+        Define Rythm pattern.
+
+        :param values: a list of durations, 1 dimension or 3 dimensions.
+        :type values: list
+        :param t_sig: time signature of the pattern, default is '4/4'
+        :type t_sig: str
+        """
         # super().__init__(values)
 
         # esprimere durate in durate assolute e durate relative
         # fare check formato VALS
         # problema quantizzazione
         self.set = values
+        self.t_sig = t_sig
+        self.t_sig_value = eval(t_sig)
         self.vals = self.set.copy()
         self.allowed1d2d = [1,2,4,8,16,32] ## per durate normali o durate di gruppetti
         self.allowed3d = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]## per ritmi irregolari 
         self.dim = nDim(self.set)
-        self.guard(self.vals,self.allowed1d2d)
+        self._guard(self.vals,self.allowed1d2d)
         # print(self.vals)
     
     @property
-    def getdim(self): ## check dimensioni 
-        self.dim = nDim(self.vals)
-        return self.dim
+    def getdim(self): ## check dimensioni
+        """
+        Returns the dimension of the input list of durations.
+        """
+        if not isinstance(self.vals, list):
+            self.dim = 0
+        elif not self.vals:
+            self.dim = 1
+        else:
+            self.dim = 1 + max(nDim(item) for item in self.vals)   # Ricorsione
     
-    def guard(self,list_in= None, allowed= None): ## possiamo usare questa funzione per prendere anche altre informazioni dalla lista in ingresso
+    def _guard(self,list_in= None, allowed= None): ## possiamo usare questa funzione per prendere anche altre informazioni dalla lista in ingresso
+        """
+        Checks if the input list of durations is valid based on the allowed values and dimensions.
+        """
         if self.dim == 1:
             mask = np.isin(list_in, allowed)
             if not all(mask):
@@ -53,25 +85,26 @@ class Pattern(_Set):
                     if not np.isin(el[1],allowed):
                         raise ValueError('Error Duration: Invalid duration elements found: must be in format [1,2,4,8,16,32]')
         else:
-            raise ValueError('Error Dimensions: Invalid list dimensions: must be 1 or 3')
-            
+            raise ValueError('Error Dimensions: Invalid list dimensions: must be 1 or 3')  
     
     def gen(self, length= 8, type: Literal[None, 'wrap', 'fold', 'clip', 'rand', 'randnd'] = 'rand', mask: list = None):
-
+        """
+        Generates a pattern of specified length and type based on the initial values.
+        """
         if mask == None:
             mask = [1] * (len(self.vals))
             
 
         percent = list(map(round,mask*1/np.sum(mask)*100))
-        rule = np.repeat(self.vals,percent).tolist()
-        # rule = _Set(rule)
+        rule = np.repeat(self.vals,percent)
+        pat = []
 
         if type == 'rand':
             ## qui va scritto il ciclo dove se self.dim è 3 va a 
             ## guardare dentro i vari livelli secondo l'array [0,0,0]
             ## Capire come mettere l'array dei livelli dentro la funzione gen
             if self.dim == 1:
-                rule = _Set(rule)
+                rule = _Set(rule.tolist())
                 pat = rule.getseq(length=length,type=type)
 
             elif self.dim == 3:
@@ -95,75 +128,89 @@ class Pattern(_Set):
 
             
         elif type != 'rand':
+            idx= [0,len(self.vals)-1]
+
             if self.dim == 1:
 
                 pat = _Set(self.vals).getseq(length=length,type=type)
-               
+
+                
+
             elif self.dim == 3:
                 ## Qui dobbiamo riscrivere le funzioni che ci sono in getseq
                 ## per farle funzionare con le jagged lists e decidere i vari comportamenti
-                if type == "warp":
-                    raise ValueError('Sorry not yet developed :(')
+                if type == "wrap":
+                    for i in range(length):
+                        idVal = (i % abs((idx[1]+1) - idx[0])) + idx[0]
+                        pat.append(self.vals[idVal])
+
+                    # raise ValueError('Sorry not yet developed :(')
                     
                 if type == "fold":
-                    raise ValueError('Sorry not yet developed :(')
+                    INDEX = idx[0]
+                    dir = 1
+                    for _ in range(length):
+                        pat.append(self.vals[INDEX])
+                        INDEX += dir
+                        if INDEX == idx[1] or INDEX == idx[0]:
+                            dir *= -1
+                    # raise ValueError('Sorry not yet developed :(')
                     
                 if type == "clip":
-                    raise ValueError('Sorry not yet developed :(')
+
+                    for i in range(length):
+                        idVal = i + idx[0]
+                        if idVal >= idx[1]:
+                            idVal = idx[1]
+                        pat.append(self.vals[idVal])
+
+                    # raise ValueError('Sorry not yet developed :(')
                     
                 if type == "randnd":
+                    # if(length <= len(self.vals)):
+                    #     pat = np.random.choice(self.vals, length, False)
+                    # else:
+                    #     print('Invalid lenght, ecceded list lenght')
                     raise ValueError('Sorry not yet developed :(')
                     
             else:
                 raise ValueError('Error Dimensions: Invalid list dimensions: must be 1 or 3')
-            
 
- 
         return pat
-        
-
-    # def profile(self):
-
-    # def morph(self, otherlist):
-        
-    # def negative(self):
-
-    # def substitute(self): # oppure aggiungere la funzione setitems in _Set
-
-
-def nDim(a):
-    '''Riporta le dimensioni di una lista:
-    1D = Tutto
-    2D = Solo accordi (pitches)
-    3D = Solo ritmi irregolari o puntati
-    '''
-    if not isinstance(a, list):
-        return 0
-    elif not a:
-        return 1
-    else:
-        return 1 + max(nDim(item) for item in a)   # Ricorsione
-
-def grid(lista, pitches, t_sig=1):
+   
+def grid(durs, pitches, t_sig='4/4'):
+    """
+    Function for gridding pitches and durs in a specific time signature.
+    """
+    tsig = eval(t_sig)
     result = []
     misura_corrente = []
     exp = []
+    note_rimanenti = []
     
-    # Convertiamo la lista di divisori in frazioni reali (es. 4 -> 1/4)
-    note_rimanenti = [Fraction(1, d) for d in lista]
+    # Convertiamo la durs di divisori in frazioni reali (es. 4 -> 1/4)
+    for d in durs:
+        if isinstance(d,int):
+            note_rimanenti.append([Fraction(1, d)])
+        elif isinstance(d, list):
+            # note_rimanenti.append(Fraction(1, d[0]))
+            note_rimanenti.append([Fraction(1,d[0]),d])
+            # print([Fraction(1,d[0]),d])
     
-    spazio_libero = Fraction(t_sig)
-    
+    spazio_libero = Fraction(tsig)
+
     i = 0
     while i < len(note_rimanenti):
         durata_nota = note_rimanenti[i]
-        
-        if durata_nota <= spazio_libero:
+        if durata_nota[0] <= spazio_libero:
             # La nota sta nella misura (o la riempie esattamente)
-            misura_corrente.append(durata_nota)
-            spazio_libero -= durata_nota
+            misura_corrente.append(durata_nota[len(durata_nota)-1])
+            spazio_libero -= durata_nota[0]
             i += 1 # Passiamo alla nota successiva
-            exp.append(00)
+            if len(durata_nota) < 2:
+                exp.append('')
+            else: 
+                exp = exp + len(durata_nota[1][1])*['']
             if spazio_libero == 0:
                 result.append(misura_corrente)
                 misura_corrente = []
@@ -175,18 +222,23 @@ def grid(lista, pitches, t_sig=1):
             result.append(misura_corrente)
             # 1.1 Aggiungo l'altezza corrente alla nota generata successiva
             # e aggiungo una legatura di valore
-            pitches.insert(i,pitches[i])
-            exp.append('tie')
-            # 2. Calcoliamo quanto resta della nota
-            resto_durata = durata_nota - spazio_libero
             
-            # 3. Aggiorniamo la nota corrente nella lista con il resto
+            if i < len(pitches):
+                pitches.insert(i, pitches[i])
+            elif pitches: # se la lista pitches non è della stessa lungezzza delle durate 
+                pitches.append(pitches[-1])
+
+            exp.append("tie")
+            # 2. Calcoliamo quanto resta della nota
+            resto_durata = durata_nota[0] - spazio_libero
+            
+            # 3. Aggiorniamo la nota corrente nella durs con il resto
             # e NON incrementiamo 'i', così al prossimo giro processiamo il resto
-            note_rimanenti[i] = resto_durata
+            note_rimanenti[i] = [resto_durata]
             
             # Reset misura
             misura_corrente = []
-            spazio_libero = Fraction(t_sig)
+            spazio_libero = Fraction(tsig)
 
     # Aggiunge l'ultima misura se non è vuota o completa
     if misura_corrente:
@@ -195,14 +247,18 @@ def grid(lista, pitches, t_sig=1):
     res = []
     for misura in result:
         for f in misura:
-            if f.numerator == 1:
-                res.append(f.denominator)
-            else:
-                res.append(f.numerator/f.denominator)
+            if isinstance(f,Fraction):
+                if f.numerator == 1:
+                    res.append(f.denominator)
+                else:
+                    res.append(f.numerator/f.denominator)
+            elif isinstance(f,list):
+                res.append(f)
 
     # Riconvertiamo in divisori per LilyPond (es. 1/4 -> 4)
     # Nota: se la frazione non è standard (es. 3/8), LilyPond richiede sintassi diverse
     return res,exp,pitches
+
 
 
 # a = Pattern([4,4,[4,[1,1,1]],8])

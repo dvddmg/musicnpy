@@ -6,22 +6,25 @@ Data
 
 Introduction
 ===================
-This module provide a collection of models available in the library for different types of musical data.
+This module provide a collection of models available in the library for different types of musical data. It provides predefined chord patterns that can be used to generate chords based on a root note.
 
-|
-
-PMod Class
+Chords Model
 ===================
 
-PMod is a class for handling pitch models in musical data.
+ChordModel is a class for handling chord models in musical data.
 
-.. code-block:: python
-   
-   from musicnpy.data import PMod
+.. autoclass:: ChordModel
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-   print(PMod.maj)
-   >>> {
-         'intervals': [0, 2, 4, 5, 7, 9, 11], 
-         'scale_harmo': ['maj', 'min', 'min', 'maj', 'maj', 'min', 'dim'], 
-         'chord': [0, 4, 7]
-       }
+
+Scales Model
+===================
+ScaleModel is a class for handling scale models in musical data. It provides predefined scale patterns that can be used to generate scales based on a root note.
+It includes the chords of the scale as well, which are derived from the intervals of the scale.
+  
+.. autoclass:: ScaleModel
+   :members:
+   :undoc-members:
+   :show-inheritance:

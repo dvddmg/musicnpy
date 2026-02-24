@@ -5,7 +5,7 @@ musicnpy.core
 from __future__ import annotations
 import numpy as np
 import numbers, operator
-from typing import Self, TypeAlias, Callable, Any, Literal 
+from typing import Self, Callable, Any, Literal 
 from collections.abc import Sequence, Iterator
 
 Numeric = numbers.Real
@@ -1463,14 +1463,14 @@ class _Set:
         :type fill: Numeric
         :return: This set with filtered elements.
         :rtype: Self
-        #TODO al posto della stringa usare 0,1,0,1,1,0,0; implementare anche la possibilità di passare in input delle liste
-        # aggiungere _align per evitare di incorrere in errori
         :Example:
 
         >>> s = _Set([1, 2, 3, 4, 5, 6])
         >>> s.filter('x > 3').values
         [4.0, 5.0, 6.0]
         """
+
+        
 
         if isinstance(condition, list):
             mask = np.asarray(condition, dtype=bool)
@@ -1490,7 +1490,7 @@ class _Set:
         
         return self
     
-    def getseq(self, *,length: int = 2, type: Literal[None, 'wrap', 'fold', 'clip', 'rand', 'randnd'] = None, idx: tuple = None) -> list:
+    def getseq(self, *, length: int = 2, type: Literal[None, 'wrap', 'fold', 'clip', 'rand', 'randnd'] = None, idx: tuple = None) -> Self:
         
         """
         Generate a sequence of values using various indexing modes.
@@ -1559,7 +1559,7 @@ class _Set:
             else:
                 print('Invalid lenght, ecceded list lenght')
 
-        return [x.item() for x in data]
+        return self.__class__([x.item() for x in data])
 
     def getitems(self, idx: ArrayLike = None) -> list:
         
@@ -1645,7 +1645,6 @@ class _Set:
         :rtype: list[_Set]
         :raises ValueError: If neither or both idx and items are provided,
             or if split mode is invalid.
-        # TODO DIVIDI PER IL NUMERO DI ELEMTNI PER IL SINGOLO ARRAY, PER QUANTITà "Fami 3 liste di questa grandezza [3, 3, 3, 1] elementi
         
         :Example:
 
@@ -1798,7 +1797,7 @@ class _Set:
         >>> len(s)
         5
         """
-        return cls(np.random.choice(range(min, max), size, replace=not unique))
+        return cls(np.random.choice(range(min, max), size, replace=not unique).tolist())
         
     @classmethod      
     def rand_flt(cls, size: int = 1, min: float = 0, max: float = 12, decimals: int = 2) -> Self:
@@ -1827,7 +1826,7 @@ class _Set:
         3
         """
         vals = np.random.rand(size) * (abs(min - max)) + min
-        return cls(np.round(vals, decimals=decimals))
+        return cls(np.round(vals, decimals=decimals).tolist())
     
     @classmethod
     def n_time(cls, item: Numeric | list[Numeric] = 0, size: int = 1) -> Self:
@@ -1854,37 +1853,70 @@ class _Set:
         """
         return cls(np.tile(np.asarray(item), size))
     
+    def morphing(self, other: _Set, mode: Literal['up', 'down', 'rand', 'chiasm']) -> list[_Set]:
+        """
+        Generate a sequence of sets morphing from this set to another set.
+        Creates a list of intermediate sets by progressively replacing elements
+        from this set with corresponding elements from the other set based on the specified mode.
+        
+        :param other: The target set to morph towards.
+        :type other: _Set
+        :param mode: Morphing mode. Options are:
+        
+            - ``'up'``: Replace elements from the start to the end.
+            - ``'down'``: Replace elements from the end to the start.
+            - ``'rand'``: Replace elements in random order.
+            - ``'chiasm'``: Replace elements from the outside towards the center.
+            
+        :type mode: Literal['up', 'down', 'rand', 'chiasm']
+        :return: List of _Set instances representing the morphing sequence.
+        :rtype: list[_Set]
+        :raises ValueError: If the sets have different lengths or if mode is invalid.
 
-# a = _Set(1) funziona
-# a = _Set([1, 2, 3, 4])
-# print(a)
-# print(f'deltas = {a.deltas}')
-# print(f'odd = {a.odd}')
-# print(f'even = {a.even}')
-# print(f'values = {a.values}')
-# print(f'original = {a.original}')
-# print(f'reset = {a.reset}')
-# print(f'mean = {a.mean}')
-# print(f'copy = {a.copy}')
-# print(f'profile = {a.profile}')
-# print(f'len = {len(a)}')
-# print(f'max = {max(a)}')
-# print(f'min = {min(a)}')
-# print('iter')
-# for i in a:
-#     print(f'item = {i}')
-# print(f'getitem = {a[2]}')
-# a[1] = 10
-# print(f'setitem = {a.values}')
-# b = a + 1
-# print(f'add = {a}')
-# b = 1 + a
-# print(f'radd = {a}')
-# a += 1
-# print(f'iadd = {a.values}')
-# b = a - 2
-# print(f'subb = {a}')
-# b = 2 - a
-# print(f'rsubb = {a}')
-# a -= 1
-# print(f'isubb = {a.values}')
+        :Example:
+
+        >>> s1 = _Set([1, 2, 3])
+        >>> s2 = _Set([4, 5, 6])
+        >>> morph_sequence = s1.morphing(s2, mode='up')
+        >>> for i in morph_sequence: print(i.values)
+        [[1, 2, 3], [4, 2, 3], [4, 5, 3], [4, 5, 6]]
+        """
+        n = len(self)
+        if n != len(other): raise ValueError('lists with different lenght!')
+        out = []
+        if mode == 'up':
+            for i in range(n+1):
+                vals = other.values[:i] + self.values[i:]
+                out.append(self.__class__(vals, 0))
+        elif mode == 'down':
+            for i in range(n+1):
+                vals = self.values[:n-i] + other.values[n-i:]
+                out.append(self.__class__(vals, 0))
+        elif mode == 'rand':
+            order = np.random.permutation(n)
+            vals = self.values.copy()
+            out.append(self.__class__(vals, 0)) # tutto il primo
+            for i in order:
+                vals = vals.copy()
+                vals[i] = other.values[i]
+                out.append(self.__class__(vals, 0))
+        elif mode == 'chiasm':
+            left = 0
+            right = n - 1
+            order = []
+            while left <= right:
+                if left == right: 
+                    order.append(left)
+                else:
+                    order.append(left)
+                    order.append(right)
+                left += 1
+                right -= 1
+            vals = self.values.copy()
+            out.append(self.__class__(vals, 0))
+            for i in order:
+                vals = vals.copy()
+                vals[i] = other.values[i]
+                out.append(self.__class__(vals, 0))   
+        
+        return out

@@ -39,10 +39,10 @@ html_theme_options = {
     "nav_links": [
         {
             "title": "info",
-            "url": "./logbook"
+            "url": "./introduzione"
         }, {
             "title": "modules",
-            "url": "writing",
+            # "url": "writing",
             "children": [
                 {"title": "core", "url": "./core"},
                 {"title": "pitch", "url": "./pitch"},
@@ -53,10 +53,11 @@ html_theme_options = {
             ]
         }, {
             "title": "example",
-            "url": "writing",
+            "url": "./example",
             "children": [
                 {"title": "core example", "url": "./example/core_example"},
                 {"title": "pitch example", "url": "./example/pitch_example"},
+                {"title": "complete example", "url": "./example/complete_example"},
             ]
         }
     ]
@@ -81,6 +82,8 @@ latex_elements = {
 \titleformat{\chapter}[display]
   {\normalfont\huge\bfseries}{}{0pt}{\Huge}
 \titlespacing*{\chapter}{0pt}{-20pt}{40pt}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
 ''',
 
     # Margini

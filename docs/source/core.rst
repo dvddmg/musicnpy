@@ -4,13 +4,10 @@ Core
 
 .. currentmodule:: musicnpy.core
 
-
 Introduction
 ===================
 This module provides the base class :class:`_Set` for manipulating musical numeric sequences, integrating vectorial operations through NumPy.
 It serves as the foundation for more specialized classes in the library, enabling efficient and readable data transformation pipelines for musical data.
-
-|
 
 _Set Class
 ===================
@@ -30,8 +27,6 @@ In some cases, as documented, operations can be performed in-place to improve pe
 
    print(s.values)
 
-|
-
 Lifecycle & Setup
 --------------------
 Initialization and basic methods for resetting, copying, and representing the _Set object.
@@ -40,8 +35,6 @@ Initialization and basic methods for resetting, copying, and representing the _S
 .. autoattribute:: _Set.reset
 .. autoattribute:: _Set.copy
 .. automethod:: _Set.__repr__
-
-|
 
 Getters & Properties
 -----------------------
@@ -59,8 +52,6 @@ These properties and methods allow access to various attributes of the _Set obje
 .. automethod:: _Set.getids
 .. automethod:: _Set.__getitem__
 .. automethod:: _Set.__setitem__
-
-|
 
 Arithmetic Operations
 -------------------------
@@ -96,8 +87,6 @@ Additional elements are filled with zeros for addition and subtraction, and with
 .. automethod:: _Set.__neg__
 .. automethod:: _Set._neg
 
-|
-
 Mathematical Transformations
 -----------------------------
 These methods apply various mathematical transformations to the sequence, such as transposition, shifting, scaling, limiting values, inverting, rounding, and more.
@@ -111,9 +100,8 @@ These methods apply various mathematical transformations to the sequence, such a
 .. automethod:: _Set.ceil
 .. automethod:: _Set.floor
 .. automethod:: _Set.interpolation
+.. automethod:: _Set.morphing
 .. automethod:: _Set.normalize
-
-|
 
 Structural Manipulation
 ----------------------------
@@ -135,8 +123,6 @@ These methods allow for structural changes to the sequence, such as splitting, s
 .. automethod:: _Set.__or__
 .. automethod:: _Set.__ior__
 
-|
-
 Logic, Filters and Sequences
 ----------------------------
 These methods allow for logical operations, filtering based on conditions, and retrieving sequences of values.
@@ -144,8 +130,6 @@ These methods allow for logical operations, filtering based on conditions, and r
 .. automethod:: _Set.filter
 .. automethod:: _Set.getseq
 .. automethod:: _Set.__iter__
-
-|
 
 Generators
 -----------
@@ -155,15 +139,12 @@ These class methods allow for generating _Set objects with random or specific va
 .. automethod:: _Set.rand_flt
 .. automethod:: _Set.n_time
 
-|
-
 Internal Methods
 -----------------
 These methods are used internally by the class and are not typically called directly.
 
 .. automethod:: _Set._align
 .. automethod:: _Set._binary_op
-
 
 Functions
 ===================

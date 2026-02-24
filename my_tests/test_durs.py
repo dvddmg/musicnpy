@@ -27,7 +27,7 @@ import random as rnd
 
 
 
-
+print(Pattern([1, 2, 8]).gen(8, type='rand'))
 
 
 
