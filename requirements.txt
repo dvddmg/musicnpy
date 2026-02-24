@@ -30,7 +30,7 @@ jupyterlab_pygments==0.3.0
 MarkupSafe==3.0.3
 matplotlib-inline==0.2.1
 mistune==3.2.0
--e git+https://github.com/dvddmg/musicnpy.git@20860c55a5b3f739d38ba14c00ec657ac2a466db#egg=musicnpy
+-e git+https://github.com/dvddmg/musicnpy.git@60e08b3b8c1b9496da99bca739821a7e1c6cbafe#egg=musicnpy
 nbclient==0.10.4
 nbconvert==7.16.6
 nbformat==5.10.4
